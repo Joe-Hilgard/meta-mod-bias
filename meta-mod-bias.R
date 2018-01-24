@@ -7,6 +7,7 @@ library(pwr)
 library(compiler)
 library(metafor)
 
+# load study-simulating functions
 source("sim-studies.R")
 
 # Steps: 
