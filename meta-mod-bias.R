@@ -242,6 +242,7 @@ bind_rows(output.nobias, output.70p_pubbias) %>%
 hist(meta1$N)
 # implement PET-RMA model
 
+#??not sure this ran, the "for" arguments seem to be having trouble??
 # what if differences are more subtle?
 output.smallfx.nobias <- data.frame(NA)
 for (i in 1:nSim) {
