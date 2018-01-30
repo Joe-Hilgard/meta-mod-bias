@@ -84,6 +84,8 @@ meta1 <- modMA(k = 20, d = c(0, .3, .6),
 # funnel(m1.mod)
 # m1.egger <- rma(yi = d, sei = se, mods = ~se, data = meta1)
 # summary(m1.egger)
+#Would be nice to clean this file up a bit by getting rid of commands that are just commented out
+#I'm doing it in a seprate thing (Also R doesn't spell check so sorry if everything is spelled wrong)
 
 # For starters, we can ask:
 # By how much do we miss mean effect size of mean(d %*% k)
@@ -97,9 +99,11 @@ inspectMA <- function(dataset) {
   # test for moderator
   moderation.test <- rma(yi = d, sei = se, 
                          mods = ~id, data = dataset)
+  #Why does this equal the id?
   # test for small-study effect
   egger.test <- rma(yi = d, sei = se,
                     mods = ~se, data = dataset)
+  #??? below to STOP
   # test for moderator after adjustment for small-study
   # is it id + se or id * se?
   joint.test.additive <- rma(yi = d, sei = se,
@@ -129,6 +133,7 @@ inspectMA <- function(dataset) {
                     # joint PET-RMA tests
                     )
   # to be continued...
+  #STOP
   
   
   return(data.frame(out))
@@ -136,6 +141,7 @@ inspectMA <- function(dataset) {
 
 
 # testing that passing of arguments is working right
+#What does passing of arguments mean?
 set.seed(42069)
 testset <- modMA(k = 20, d = c(0, .3, .6), 
                  sel = 0, propB = 0, QRP = 0)
@@ -185,6 +191,7 @@ output.70p_pubbias
 output.70p_pubbias <- output.70p_pubbias[-1,]
 output.70p_pubbias <- output.70p_pubbias[,-1]
 
+#What is below doing?
 # ideal case stats:
 is_sig <- function(x) x < .05
 
@@ -242,7 +249,7 @@ bind_rows(output.nobias, output.70p_pubbias) %>%
 hist(meta1$N)
 # implement PET-RMA model
 
-#??not sure this ran, the "for" arguments seem to be having trouble??
+#what is the fx? Can you explain the for argument?
 # what if differences are more subtle?
 output.smallfx.nobias <- data.frame(NA)
 for (i in 1:nSim) {
@@ -300,7 +307,7 @@ bind_rows(output.smallfx.nobias, output.smallfx.70p_pubbias) %>%
 
 
 
-
+#Can you explain below a bit? lets go over PET-RMA again
 # playing with PET-RMA
 petrma.easy <- modMA(100, d = c(0, 1, 2),
                 QRP = 0, sel = 0, propB = 0)
