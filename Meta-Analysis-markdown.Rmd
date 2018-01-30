@@ -41,23 +41,42 @@ funnel(trimfill(ma1))
 
 ```
 
-# simulate null effect dataset
-# let's use dataMA() to simulate a meta-analytic dataset
+####*Simulate a null effect*
+```{r}
+# simulate null effect dataset with dataMA()
 dat.null <- dataMA(k = 50,
               QRP = 0,
               sel =0,
               sigma = 0,
               min = 50, max = 500,
               meanD = 0)
+
+#meta-analysis for a null effect
 ma2 = rma(yi = d, sei = se, data = dat.null)
 summary(ma2)
 funnel(ma2)
 forest(ma2)
 
+#same thing but using less data so we can see the forest plot
 ma3 = rma(yi = d, sei = se, data = head(dat.null))
 summary(ma3)
 forest(ma3)
+```
 
+####*Techniques for detecting and adjusting bias*
+**Ways to detect bias**
+- Funnel plots
+- Forest plots?
+- Egger Test
+
+**Ways to detect and adjust bias**
+- Trim and fill
+- PET and PEESE
+- P-curve
+- P-uniform
+
+####*Simulate bias data*
+```{r}
 dat.bias = dataMA(k = 50,
                   QRP = 0,
                   sel =1, propB = .9,
@@ -68,11 +87,25 @@ ma4 = rma(yi = d, sei = se, data = dat.bias)
 summary(ma4)
 funnel(ma4)
 funnel(ma4, refline = 0)
+#refline is the vertical reference line values, set to 0 to see bias
+
+#Test for bias: using the egger test
+ma4.1 <- rma(yi = d, sei = se,
+                  mods = ~se, data = dat.bias)
+plot(ma4.1)
+funnel(ma4.1)
+
+#:using trim and fill to "correct" data
 trimfill(ma4)
 funnel(trimfill(ma4), refline = 0)
 
+#:using PET and PEESE
+#:using P-curve
+#:using P-uniform 
+```
 
-# moderator effect (meta-regression)
+####*Simulate a moderator effect (meta-regression)*
+```{r}
 dat.mod <- data.frame(dat, "mod" = runif(50))
 ma5 = rma(yi = d, sei = se, data = dat.mod,
           mods = mod)
@@ -82,15 +115,14 @@ plot(ma5)
 ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
 plot(ma6)
 funnel(ma4)
+```
 
-#how is this the egger.test??????????????????????????????????????????????
+####*Code that does it all in one*
+```{r}
 
-ma7 <- rma(yi = d, sei = se,
-                  mods = ~se, data = dat.mod)
-plot(ma7)
-funnel(ma7)
-#arguments for funnel() to get shaded bands for p < .10 and p < .05.
-funnel(ma7, level=c(90, 95, 99), shade = c("white", "grey75", "grey60"), refline=0)
+
+```
+
 
 out <- data.frame(d.obs = summary(ma5)$b[1],
                   se.obs = summary(ma5)$se[1],
