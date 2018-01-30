@@ -1,0 +1,114 @@
+---
+title: "Meta-Analysis"
+author: "Olivia Cody"
+date: "1/30/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(MASS)
+library(tidyverse)
+library(truncnorm)
+library(truncdist)
+library(pwr)
+library(compiler)
+library(metafor)
+
+# load study-simulating functions
+source("sim-studies.R")
+```
+
+
+####*Simulate a meta-analytic dataset with dataMA()*
+```{r}
+dat <- dataMA(k = 50,
+              QRP = 0,
+              sel =0,
+              sigma = 0,
+              min = 50, max = 500)
+
+# let's look at it
+head(dat)
+
+# let's fit our first meta-analysis
+ma1 <- rma(yi = d, sei = se, data = dat)
+summary(ma1)
+funnel(ma1)
+trimfill(ma1)
+funnel(trimfill(ma1))
+
+```
+
+# simulate null effect dataset
+# let's use dataMA() to simulate a meta-analytic dataset
+dat.null <- dataMA(k = 50,
+              QRP = 0,
+              sel =0,
+              sigma = 0,
+              min = 50, max = 500,
+              meanD = 0)
+ma2 = rma(yi = d, sei = se, data = dat.null)
+summary(ma2)
+funnel(ma2)
+forest(ma2)
+
+ma3 = rma(yi = d, sei = se, data = head(dat.null))
+summary(ma3)
+forest(ma3)
+
+dat.bias = dataMA(k = 50,
+                  QRP = 0,
+                  sel =1, propB = .9,
+                  sigma = 0,
+                  min = 50, max = 500,
+                  meanD = 0)
+ma4 = rma(yi = d, sei = se, data = dat.bias)
+summary(ma4)
+funnel(ma4)
+funnel(ma4, refline = 0)
+trimfill(ma4)
+funnel(trimfill(ma4), refline = 0)
+
+
+# moderator effect (meta-regression)
+dat.mod <- data.frame(dat, "mod" = runif(50))
+ma5 = rma(yi = d, sei = se, data = dat.mod,
+          mods = mod)
+summary(ma5)
+plot(ma5)
+
+ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
+plot(ma6)
+funnel(ma4)
+
+#how is this the egger.test??????????????????????????????????????????????
+
+ma7 <- rma(yi = d, sei = se,
+                  mods = ~se, data = dat.mod)
+plot(ma7)
+funnel(ma7)
+#arguments for funnel() to get shaded bands for p < .10 and p < .05.
+funnel(ma7, level=c(90, 95, 99), shade = c("white", "grey75", "grey60"), refline=0)
+
+out <- data.frame(d.obs = summary(ma5)$b[1],
+                  se.obs = summary(ma5)$se[1],
+                  d.p = summary(ma5)$pval[1],
+                  # Moderators
+                  # Note that .1 is the intercept, reference group
+                  mod.b.obs.1 = summary(ma6)$b[1],
+                  mod.b.obs.2 = summary(ma6)$b[2],
+                  mod.b.obs.3 = summary(ma6)$b[3],
+                  mod.p.1 = summary(ma6)$pval[1],
+                  mod.p.2 = summary(ma6)$pval[2],
+                  mod.p.3 = summary(ma6)$pval[3],
+                  # Egger
+                  d.obs.pet = summary(ma7)$b[1],
+                  p.pet = summary(ma7)$pval[1],
+                  b.egger = summary(ma7)$b[2],
+                  p.egger = summary(ma7)$pval[2]
+                  # joint PET-RMA tests
+)
+View(out)
+#Explain above?????????????????????????????????????????????????
