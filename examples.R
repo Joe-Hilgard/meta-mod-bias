@@ -47,20 +47,6 @@ funnel(ma4, refline = 0)
 trimfill(ma4)
 funnel(trimfill(ma4), refline = 0)
 
-# original way
-cool(bake(knead(mix(dough, "lightly"), "as little as possible"), temp = 350))
-# piping way
-dough %>% 
-  mix("lightly") %>% 
-  knead("as little as possible") %>% 
-  bake(temp = 350) %>% 
-  cool()
-
-mtcars %>% 
-  select(-gear) %>% 
-  filter(mpg < 20) %>% 
-  mutate(automatic = ifelse(am == 0, "manual", "automatic")) %>% 
-  lm(mpg ~ wt, data = .)
 
 # moderator effect (meta-regression)
 dat.mod <- data.frame(dat, "mod" = runif(50))
@@ -72,3 +58,8 @@ plot(ma5)
 ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
 plot(ma6)
 funnel(ma4)
+
+#arguments for funnel() to get shaded bands for p < .10 and p < .05.
+#also possible to overlay PET-PEESE regression lines not worth it at the moment. 
+
+funnel(level=c(90, 95, 99), shade = c("white", "grey75", "grey60"), refline=0)
