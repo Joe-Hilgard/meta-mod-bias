@@ -71,6 +71,8 @@ modMA <- function(k, d, QRP, sel, propB) {
                colLim = 0, add = 0, verbose = T)
   return(bind_rows(d1, d2, d3, .id = "id"))
 }
+# TODO: Convert column "id" to contrast coding, not dummy coding.
+
 
 # make example data set for testing & debugging
 set.seed(42069)
@@ -84,8 +86,6 @@ meta1 <- modMA(k = 20, d = c(0, .3, .6),
 # funnel(m1.mod)
 # m1.egger <- rma(yi = d, sei = se, mods = ~se, data = meta1)
 # summary(m1.egger)
-#Would be nice to clean this file up a bit by getting rid of commands that are just commented out
-#I'm doing it in a seprate thing (Also R doesn't spell check so sorry if everything is spelled wrong)
 
 # For starters, we can ask:
 # By how much do we miss mean effect size of mean(d %*% k)
@@ -99,11 +99,9 @@ inspectMA <- function(dataset) {
   # test for moderator
   moderation.test <- rma(yi = d, sei = se, 
                          mods = ~id, data = dataset)
-  #Why does this equal the id?
   # test for small-study effect
   egger.test <- rma(yi = d, sei = se,
                     mods = ~se, data = dataset)
-  #??? below to STOP
   # test for moderator after adjustment for small-study
   # is it id + se or id * se?
   joint.test.additive <- rma(yi = d, sei = se,
@@ -125,15 +123,14 @@ inspectMA <- function(dataset) {
                     mod.p.1 = summary(moderation.test)$pval[1],
                     mod.p.2 = summary(moderation.test)$pval[2],
                     mod.p.3 = summary(moderation.test)$pval[3],
-                    # Egger
+                    # Egger / PET
                     d.obs.pet = summary(egger.test)$b[1],
                     p.pet = summary(egger.test)$pval[1],
                     b.egger = summary(egger.test)$b[2],
                     p.egger = summary(egger.test)$pval[2]
-                    # joint PET-RMA tests
+                    # TODO: joint PET-RMA tests
                     )
   # to be continued...
-  #STOP
   
   
   return(data.frame(out))
@@ -141,7 +138,6 @@ inspectMA <- function(dataset) {
 
 
 # testing that passing of arguments is working right
-#What does passing of arguments mean?
 set.seed(42069)
 testset <- modMA(k = 20, d = c(0, .3, .6), 
                  sel = 0, propB = 0, QRP = 0)
@@ -157,52 +153,55 @@ funnel(rma(yi = d, sei = se, data = testset.70, subset = id == 3))
 # Run simulations ----
 nSim <- 500
 
+# TODO: It would be smart to turn this loop into a function,
+#       then call the function instead of copying and pasting.
+# TODO: It would also be smart to save the output of summarize_run to an object
+#       but maybe we work with the raw output objects for now
+
+
 # set 1 : no bias
-output.nobias <- data.frame(NA); 
+output.nobias <- NULL; 
 for (i in 1:nSim) {
-  # this iteration, run dataMA() on three populations
+  # make a dataset of simulated studies
   # k studies each, effect sizes given by d
-  t <- modMA(k = 20, d = c(0, .3, .6), 
-             sel = 0, propB = 0, QRP = 0) %>% 
-    inspectMA()
+  tempdata <- modMA(k = 20, d = c(0, .3, .6), 
+                sel = 0, propB = 0, QRP = 0)
+  # fit our various meta-analytic models to the simulated data
+  tempresult <- inspectMA(tempdata)
   # add this iteration's results to the output object
-  output.nobias <- bind_rows(output.nobias, t)
+  output.nobias <- bind_rows(output.nobias, temp)
 }
-# Trim missings from first row, first column.
-# Surely there's a more elegant way
-output.nobias <- output.nobias[-1,]
-output.nobias <- output.nobias[,-1]
+output.nobias
 
 # set 2: publication bias, 70+% of each subgroup stat. sig
-output.70p_pubbias <- data.frame(NA)
+output.70p_pubbias <- NULL
 for (i in 1:nSim) {
   # this iteration, run dataMA() on three populations
   # k studies each, effect sizes given by d
-  t <- modMA(k = 20, d = c(0, .3, .6),
-             sel = 1, QRP = 0, propB = .70) %>% 
-    inspectMA()
+  tempdata <- modMA(k = 20, d = c(0, .3, .6),
+             sel = 1, QRP = 0, propB = .70)
+  # fit our various meta-analytic models to the simulated data
+  tempresult <- inspectMA()
   # add this iteration's results to the output object
-  output.70p_pubbias <- bind_rows(output.70p_pubbias, t)
+  output.70p_pubbias <- bind_rows(output.70p_pubbias, tempresult)
 }
-
 output.70p_pubbias
-# Trim missings from first row, first column.
-# Surely there's a more elegant way
-output.70p_pubbias <- output.70p_pubbias[-1,]
-output.70p_pubbias <- output.70p_pubbias[,-1]
 
-#What is below doing?
-# ideal case stats:
+# functions for summarizing a simulation series in terms of mean estimates and
+#    error rates
 is_sig <- function(x) x < .05
 
 summarize_run <- function(x) {
+  # Get estimates of d, moderator parameters, bias parameter, bias-adjusted PET
   x.est <- x %>% 
     summarize_each(funs(mean), d.obs, se.obs, mod.b.obs.1:mod.b.obs.3,
                    d.obs.pet, b.egger) %>% 
+    # make cell means
     mutate(d1.obs = mod.b.obs.1,
            d2.obs = mod.b.obs.1 + mod.b.obs.2,
            d3.obs = mod.b.obs.1 + mod.b.obs.3)
 
+  # Get power (or Type I) rates for each p-value test
   x.pow <- x %>% 
     summarize_each(funs(mean(is_sig(.))), 
                    d.p, mod.p.1:mod.p.3, p.egger)
@@ -211,9 +210,9 @@ summarize_run <- function(x) {
 }
 
 summarize_run(output.nobias) 
-
 # estimates: d = .00, .30, .60; power, 4.2%, 92%, 100%; egger type 1, 11%
 # PET shows strong downward bias, d = .14
+
 summarize_run(output.70p_pubbias)
 # estimates: d = .45, .58, .74; power, 100%, 15%, 91%; egger power, 76%
 # note that differences between subpopulations have been halved
@@ -249,33 +248,30 @@ bind_rows(output.nobias, output.70p_pubbias) %>%
 hist(meta1$N)
 # implement PET-RMA model
 
-#what is the fx? Can you explain the for argument?
 # what if differences are more subtle?
-output.smallfx.nobias <- data.frame(NA)
+output.smallfx.nobias <- NULL
 for (i in 1:nSim) {
   # this iteration, run dataMA() on three populations
   # k studies each, effect sizes given by d
-  t <- modMA(k = 20, d = c(0, .2, .4),
-             sel = 0, QRP = 0, propB = 0) %>% 
-    inspectMA()
+  tempdata <- modMA(k = 20, d = c(0, .2, .4),
+             sel = 0, QRP = 0, propB = 0)
+  # fit our various meta-analytic models to the simulated data
+  tempresult <- inspectMA()
   # add this iteration's results to the output object
-  output.smallfx.nobias <- bind_rows(output.smallfx.nobias, t)
+  output.smallfx.nobias <- bind_rows(output.smallfx.nobias, tempresult)
 }
-output.smallfx.nobias <- output.smallfx.nobias[-1,]
-output.smallfx.nobias <- output.smallfx.nobias[,-1]
 
-output.smallfx.70p_pubbias <- data.frame(NA)
+output.smallfx.70p_pubbias <- NULL
 for (i in 1:nSim) {
   # this iteration, run dataMA() on three populations
   # k studies each, effect sizes given by d
-  t <- modMA(k = 20, d = c(0, .2, .4),
-             sel = 1, QRP = 0, propB = .70) %>% 
-    inspectMA()
+  tempdata <- modMA(k = 20, d = c(0, .2, .4),
+             sel = 1, QRP = 0, propB = .70)
+  # fit our various meta-analytic models to the simulated data
+  tempresult <- inspectMA()
   # add this iteration's results to the output object
   output.smallfx.70p_pubbias <- bind_rows(output.smallfx.70p_pubbias, t)
 }
-output.smallfx.70p_pubbias <- output.smallfx.70p_pubbias[-1,]
-output.smallfx.70p_pubbias <- output.smallfx.70p_pubbias[,-1]
 
 summarize_run(output.smallfx.nobias) 
 # observed d = 0, .2, .4; power = 5.6%, 60%, 99%; egger type 1 6.4%
@@ -307,7 +303,7 @@ bind_rows(output.smallfx.nobias, output.smallfx.70p_pubbias) %>%
 
 
 
-#Can you explain below a bit? lets go over PET-RMA again
+
 # playing with PET-RMA
 petrma.easy <- modMA(100, d = c(0, 1, 2),
                 QRP = 0, sel = 0, propB = 0)
