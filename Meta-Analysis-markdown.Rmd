@@ -5,6 +5,16 @@ date: "1/30/2018"
 output: html_document
 ---
 
+Next steps:
+- better document the code (better names)
+- code book (what are the object and what do they do) ' @param is for package creating
+    - work on the values for what the functions do
+    - figure out how to set it up as a package 
+- put the joint. into the "out" function 
+
+- making loop, fitting data sets, and doing it repeatly 
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -67,11 +77,11 @@ forest(ma3)
 **Ways to detect bias**
 - Funnel plots
 - Forest plots?
-- Egger Test
+- Egger Test (looks at slope)
 
 **Ways to detect and adjust bias**
 - Trim and fill
-- PET and PEESE
+- PET (just looks at intercept) and PEESE
 - P-curve
 - P-uniform
 
@@ -79,7 +89,7 @@ forest(ma3)
 ```{r}
 dat.bias = dataMA(k = 50,
                   QRP = 0,
-                  sel =1, propB = .9,
+                  sel =1, propB = .9, # % of each subgroup stat. sig
                   sigma = 0,
                   min = 50, max = 500,
                   meanD = 0)
@@ -100,12 +110,36 @@ trimfill(ma4)
 funnel(trimfill(ma4), refline = 0)
 
 #:using PET and PEESE
+petrma.easy <- modMA(100, d = c(0, 1, 2),
+                QRP = 0, sel = 0, propB = 0) #does pet rma work in ideal case
+petrma.add.easy <- rma(yi = d, sei = se, 
+                       mods = ~ id + se, data = petrma.easy) #SE + id
+summary(petrma.add.easy)
+petrma.mul.easy <- rma(yi = d, sei = se, 
+                       mods = ~ id * se, data = petrma.easy) #SE * id
+summary(petrma.mul.easy)
+
+petrma.bias <- modMA(100, d = c(0, 1, 2),
+                     QRP = 0, sel = 1, propB = .7)
+petrma.add.bias <- rma(yi = d, sei = se, 
+                       mods = ~ id + se, data = petrma.bias)
+summary(petrma.add.bias)
+petrma.mul.bias <- rma(yi = d, sei = se, 
+                       mods = ~ id * se, data = petrma.bias)
+summary(petrma.mul.bias)
 #:using P-curve
+
 #:using P-uniform 
+
 ```
 
 ####*Simulate a moderator effect (meta-regression)*
 ```{r}
+dat <- dataMA(k = 50,
+              QRP = 0,
+              sel =0,
+              sigma = 0,
+              min = 50, max = 500)
 dat.mod <- data.frame(dat, "mod" = runif(50))
 ma5 = rma(yi = d, sei = se, data = dat.mod,
           mods = mod)
@@ -115,32 +149,186 @@ plot(ma5)
 ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
 plot(ma6)
 funnel(ma4)
+
 ```
 
 ####*Code that does it all in one*
 ```{r}
 
+# Function that runs dataMA three times + fake data
+modMA <- function(k, d, QRP, sel, propB) {
+  d1 <- dataMA(k = k, 
+               QRP = QRP, sel = sel, propB = propB, 
+               meanD = d[1], sigma = 0,
+               cbdv = .5, maxN = 200, minN = 20,
+               meanN = 50, sdN = 20,
+               multDV = 0, out = 0, mod = 0,
+               colLim = 0, add = 0, verbose = T)
+  d2 <- dataMA(k = k, 
+               QRP = QRP, sel = sel, propB = propB, 
+               meanD = d[2], sigma = 0,
+               cbdv = .5, maxN = 200, minN = 20,
+               meanN = 50, sdN = 20,
+               multDV = 0, out = 0, mod = 0,
+               colLim = 0, add = 0, verbose = T)
+  d3 <- dataMA(k = k, 
+               QRP = QRP, sel = sel, propB = propB, 
+               meanD = d[3], sigma = 0,
+               cbdv = .5, maxN = 200, minN = 20,
+               meanN = 50, sdN = 20,
+               multDV = 0, out = 0, mod = 0,
+               colLim = 0, add = 0, verbose = T)
+  return(bind_rows(d1, d2, d3, .id = "id"))
+}
+
+# make example data set for testing & debugging
+set.seed(42069)
+meta1.data <- modMA(k = 20, d = c(0, .3, .6), 
+               sel = 1, propB = .70, QRP = 0)
+
+
+# function to analyze results of dataMA
+inspectMA <- function(dataset) {
+  # basic model
+  rmamod <- rma(yi = d, sei = se, data = dataset)
+  # test for moderator
+  moderation.test <- rma(yi = d, sei = se, 
+                         mods = ~id, data = dataset)
+  # test for small-study effect
+  egger.PET.test <- rma(yi = d, sei = se,
+                    mods = ~se, data = dataset)
+  # test for moderator after adjustment for small-study
+  joint.test.additive <- rma(yi = d, sei = se,
+                    mods = ~id + se, data = dataset)
+  joint.test.interactive <- rma(yi = d, sei = se,
+                             mods = ~id * se, data = dataset)
+  # not sure how to interpret these parameters in the interactive model
+  # test for moderator in hedges & vevea weight model
+  # Don't we want se???????????????????????????????????????????????????????????????
+  # return test results
+  out <- data.frame(d.obs = summary(rmamod)$b[1],
+                    se.obs = summary(rmamod)$se[1],
+                    d.p = summary(rmamod)$pval[1],
+                    # Moderators
+                    # Note that .1 is the intercept, reference group
+                    mod.b.obs.1 = summary(moderation.test)$b[1],
+                    mod.b.obs.2 = summary(moderation.test)$b[2],
+                    mod.b.obs.3 = summary(moderation.test)$b[3],
+                    mod.p.1 = summary(moderation.test)$pval[1],
+                    mod.p.2 = summary(moderation.test)$pval[2],
+                    mod.p.3 = summary(moderation.test)$pval[3],
+                    # Egger / PET
+                    d.obs.pet = summary(egger.PET.test)$b[1],
+                    p.pet = summary(egger.PET.test)$pval[1],
+                    b.egger = summary(egger.PET.test)$b[2],
+                    p.egger = summary(egger.PET.test)$pval[2],
+                    # TODO: joint PET-RMA tests
+                    joint.add.b1 = summary(joint.test.additive)$b[1],
+                    joint.add.b2 = summary(joint.test.additive)$b[2],
+                    joint.add.b3 = summary(joint.test.additive)$b[3],
+                    joint.add.p1 = summary(joint.test.additive)$pval[1],
+                    joint.add.p2 = summary(joint.test.additive)$pval[2],
+                    joint.add.p3 = summary(joint.test.additive)$pval[3]
+                    )
+  # to be continued...
+  
+  
+  return(data.frame(out))
+}
+
+#work space below:
+inspectMA(meta1.data)
+joint.test.additive <- rma(yi = d, sei = se,
+                    mods = ~id + se, data = meta1.data)
+summary(joint.test.additive)
+joint.add.b1 = summary(joint.test.additive)$b[1]
+joint.add.b2 = summary(joint.test.additive)$b[2]
+joint.add.b3 = summary(joint.test.additive)$b[3]
+
+joint.test.interactive <- rma(yi = d, sei = se,
+                             mods = ~id * se, data = dataset)
+```
+
+
+####* r Package code*
+```{r}
+#Additional libraries:
+library("devtools")
+library("roxygen2")
+#See: https://hilaryparker.com/2014/04/29/writing-an-r-package-from-scratch/
+
+
+#Step 1: Create your package directory
+#You are going to create a directory with the bare minimum folders of R packages. I am going to make a cat-themed package as an illustration.
+
+setwd("parent_directory")
+create("cats")
+#If you look in your parent directory, you will now have a folder called cats, and in it you will have two folders and one file called DESCRIPTION.
+
+#You should edit the DESCRIPTION file to include all of your contact information, etc.
+
+#Step 2: Add functions
+#If you’re reading this, you probably have functions that you’ve been meaning to create a package for. Copy those into your R folder. If you don’t, may I suggest something along the lines of:
+
+cat_function <- function(love=TRUE){
+    if(love==TRUE){
+        print("I love cats!")
+    }
+    else {
+        print("I am not a cool person.")
+    }
+}
+#Save this as a cat_function.R to your R directory.
+
+#(cats-package.r is auto-generated when you create the package.)
+
+#Step 3: Add documentation
+#This always seemed like the most intimidating step to me. I’m here to tell you — it’s super quick. The package roxygen2 that makes everything amazing and simple. The way it works is that you add special comments to the beginning of each function, that will later be compiled into the correct format for package documentation. The details can be found in the roxygen2 documentation — I will just provide an example for our cat function.
+
+#The comments you need to add at the beginning of the cat function are, for example, as follows:
+
+
+#' A Cat Function
+#'
+#' This function allows you to express your love of cats.
+#' @param love Do you love cats? Defaults to TRUE.
+#' @keywords cats
+#' @export
+#' @examples
+#' cat_function()
+ 
+cat_function <- function(love=TRUE){
+    if(love==TRUE){
+        print("I love cats!")
+    }
+    else {
+        print("I am not a cool person.")
+    }
+}
+#I’m personally a fan of creating a new file for each function, but if you’d rather you can simply create new functions sequentially in one file — just make sure to add the documentation comments before each function.
+
+#Step 4: Process your documentation
+#Now you need to create the documentation from your annotations earlier. You’ve already done the “hard” work in Step 3. Step 4 is as easy doing this:
+
+setwd("./cats")
+document()
+#This automatically adds in the .Rd files to the man directory, and adds a NAMESPACE file to the main directory. You can read up more about these, but in terms of steps you need to take, you really don’t have to do anything further.
+
+
+#Step 5: Install!
+#Now it is as simple as installing the package! You need to run this from the parent working directory that contains the cats folder.
+
+setwd("..")
+install("cats")
+#Now you have a real, live, functioning R package. For example, try typing ?cat_function. You should see the standard help page pop up!
+
+#(Bonus) Step 6: Make the package a GitHub repo
+#This isn’t a post about learning to use git and GitHub — for that I recommend Karl Broman’s Git/GitHub Guide. The benefit, however, to putting your package onto GitHub is that you can use the devtools install_github() function to install your new package directly from the GitHub page.
+
+install_github('cats','github_username')
 
 ```
 
 
-out <- data.frame(d.obs = summary(ma5)$b[1],
-                  se.obs = summary(ma5)$se[1],
-                  d.p = summary(ma5)$pval[1],
-                  # Moderators
-                  # Note that .1 is the intercept, reference group
-                  mod.b.obs.1 = summary(ma6)$b[1],
-                  mod.b.obs.2 = summary(ma6)$b[2],
-                  mod.b.obs.3 = summary(ma6)$b[3],
-                  mod.p.1 = summary(ma6)$pval[1],
-                  mod.p.2 = summary(ma6)$pval[2],
-                  mod.p.3 = summary(ma6)$pval[3],
-                  # Egger
-                  d.obs.pet = summary(ma7)$b[1],
-                  p.pet = summary(ma7)$pval[1],
-                  b.egger = summary(ma7)$b[2],
-                  p.egger = summary(ma7)$pval[2]
-                  # joint PET-RMA tests
-)
-View(out)
-#Explain above?????????????????????????????????????????????????
+
+
