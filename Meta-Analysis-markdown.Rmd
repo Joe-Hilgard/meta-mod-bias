@@ -277,53 +277,111 @@ library("roxygen2")
 
 
 #Step 1: Create your package directory
-#You are going to create a directory with the bare minimum folders of R packages. I am going to make a cat-themed package as an illustration.
 
-setwd("parent_directory")
-create("cats")
-#If you look in your parent directory, you will now have a folder called cats, and in it you will have two folders and one file called DESCRIPTION.
+work_dir = "/Users/Olivia/Documents/GitHub/meta-mod-bias"
+setwd(work_dir)
+create("meta.bias")
 
-#You should edit the DESCRIPTION file to include all of your contact information, etc.
+#If you look in your parent directory, in it you will have two folders and one file called DESCRIPTION. Need to edit the DESCRIPTION file to include all of your contact information, etc.
+
 
 #Step 2: Add functions
-#If you’re reading this, you probably have functions that you’ve been meaning to create a package for. Copy those into your R folder. If you don’t, may I suggest something along the lines of:
+#save funcitons as a "meta.bias.R" in the R directory 
 
-cat_function <- function(love=TRUE){
-    if(love==TRUE){
-        print("I love cats!")
-    }
-    else {
-        print("I am not a cool person.")
-    }
-}
-#Save this as a cat_function.R to your R directory.
-
-#(cats-package.r is auto-generated when you create the package.)
 
 #Step 3: Add documentation
-#This always seemed like the most intimidating step to me. I’m here to tell you — it’s super quick. The package roxygen2 that makes everything amazing and simple. The way it works is that you add special comments to the beginning of each function, that will later be compiled into the correct format for package documentation. The details can be found in the roxygen2 documentation — I will just provide an example for our cat function.
 
-#The comments you need to add at the beginning of the cat function are, for example, as follows:
-
-
-#' A Cat Function
+#' A Meta-analysis Function
 #'
-#' This function allows you to express your love of cats.
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @export
-#' @examples
-#' cat_function()
- 
-cat_function <- function(love=TRUE){
-    if(love==TRUE){
-        print("I love cats!")
-    }
-    else {
-        print("I am not a cool person.")
-    }
-}
-#I’m personally a fan of creating a new file for each function, but if you’d rather you can simply create new functions sequentially in one file — just make sure to add the documentation comments before each function.
+#' This fucntion produces a dataset for meta-analysis. Applies both QRP and selection at a proportion specified by propB if sel and QRP are 1 not 0. 
+#' @param k the number of studies in the MA
+#' @param QRP 1 if QRP/p-hacks are available, 0 otherwise
+#' @param sel 1 if publication bias selection exists, 0 otherwise
+#' @param propB the proportion of the sample affected by bias
+#' @param meanD the true effect (or the average of the true effects if heterogeneity exists)
+#' @param sigma the SD around the true effect
+#' @param cbdv the correlation between the multiple DVs
+#' @param maxN the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
+#' @param minN the min of the truncated normal for sample size
+#' @param meanN the mean of the truncated normal for sample size
+#' @param sdN the SD of the truncated normal for sample size
+#' @param multDV 1 if multiple DVs as a hack, 0 otherwise
+#' @param out 1 if optional outlier removal as a hack, 0 otherwise
+#' @param mod 1 if optional moderator as a hack, 0 otherwise
+#' @param colLim number of times to try collecting more data
+#' @param add number to add to each group when collecting more data
+#' @param verbose Should informations be printed?
+#' dataMA()
+dataMA = source("sim-studies.R")
+
+
+#' A Meta-analysis Function
+#'
+#' This function analyzes the results of dataMA 
+#' @param Q this is fake and does nothing, need help knowing what to put
+#' inspectMA()
+inspectMA <- function(dataset) {
+  # basic model
+  rmamod <- rma(yi = d, sei = se, data = dataset)
+  # test for moderator
+  moderation.test <- rma(yi = d, sei = se, 
+                         mods = ~id, data = dataset)
+  # test for small-study effect
+  egger.PET.test <- rma(yi = d, sei = se,
+                    mods = ~se, data = dataset)
+  # test for moderator after adjustment for small-study
+  joint.test.additive <- rma(yi = d, sei = se,
+                    mods = ~id + se, data = dataset)
+  joint.test.interactive <- rma(yi = d, sei = se,
+                             mods = ~id * se, data = dataset)
+  # not sure how to interpret these parameters in the interactive model
+  # test for moderator in hedges & vevea weight model
+  # return test results
+  out = data.frame(d.obs = summary(rmamod)$b[1],
+                    se.obs = summary(rmamod)$se[1],
+                    d.p = summary(rmamod)$pval[1],
+                    # Moderators
+                    # Note that .1 is the intercept, reference group
+                    mod.b.obs.1 = summary(moderation.test)$b[1],
+                    mod.b.obs.2 = summary(moderation.test)$b[2],
+                    mod.b.obs.3 = summary(moderation.test)$b[3],
+                    mod.p.1 = summary(moderation.test)$pval[1],
+                    mod.p.2 = summary(moderation.test)$pval[2],
+                    mod.p.3 = summary(moderation.test)$pval[3],
+                    # Egger / PET
+                    d.obs.pet = summary(egger.PET.test)$b[1],
+                    p.pet = summary(egger.PET.test)$pval[1],
+                    b.egger = summary(egger.PET.test)$b[2],
+                    p.egger = summary(egger.PET.test)$pval[2],
+                    # joint PET-RMA tests
+                    #Additive model 
+                    joint.add.b1 = summary(joint.test.additive)$b[1],
+                    joint.add.b2 = summary(joint.test.additive)$b[2],
+                    joint.add.b3 = summary(joint.test.additive)$b[3],
+                    joint.add.b.se = summary(joint.test.additive)$b[4],
+                    joint.add.p1 = summary(joint.test.additive)$pval[1],
+                    joint.add.p2 = summary(joint.test.additive)$pval[2],
+                    joint.add.p3 = summary(joint.test.additive)$pval[3],
+                    joint.add.p.se = summary(joint.test.additive)$pval[4],
+                    #Interactive model
+                    joint.inter.b1 = summary(joint.test.interactive)$b[1],
+                    joint.inter.b2 = summary(joint.test.interactive)$b[2],
+                    joint.inter.b3 = summary(joint.test.interactive)$b[3],
+                    joint.inter.b.se = summary(joint.test.interactive)$b[4],
+                    joint.inter.b2.se = summary(joint.test.interactive)$b[5],
+                    joint.inter.b3.se = summary(joint.test.interactive)$b[6],
+                    joint.inter.p1 = summary(joint.test.interactive)$pval[1],
+                    joint.inter.p2 = summary(joint.test.interactive)$pval[2],
+                    joint.inter.p3 = summary(joint.test.interactive)$pval[3],
+                    joint.inter.p.se = summary(joint.test.interactive)$pval[4],
+                    joint.inter.p2.se = summary(joint.test.interactive)$pval[5],
+                    joint.inter.p3.se = summary(joint.test.interactive)$pval[6]
+                    )
+  return(data.frame(out))
+  }
+
+
+
 
 #Step 4: Process your documentation
 #Now you need to create the documentation from your annotations earlier. You’ve already done the “hard” work in Step 3. Step 4 is as easy doing this:
