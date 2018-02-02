@@ -10,7 +10,6 @@ Next steps:
 - code book (what are the object and what do they do) ' @param is for package creating
     - work on the values for what the functions do
     - figure out how to set it up as a package 
-- put the joint. into the "out" function 
 
 - making loop, fitting data sets, and doing it repeatly 
 
@@ -48,6 +47,8 @@ summary(ma1)
 funnel(ma1)
 trimfill(ma1)
 funnel(trimfill(ma1))
+funnel(ma1, level=c(90, 95, 99), 
+        shade = c("white", "grey75", "grey60"), refline=0)
 
 ```
 
@@ -181,12 +182,6 @@ modMA <- function(k, d, QRP, sel, propB) {
   return(bind_rows(d1, d2, d3, .id = "id"))
 }
 
-# make example data set for testing & debugging
-set.seed(42069)
-meta1.data <- modMA(k = 20, d = c(0, .3, .6), 
-               sel = 1, propB = .70, QRP = 0)
-
-
 # function to analyze results of dataMA
 inspectMA <- function(dataset) {
   # basic model
@@ -204,9 +199,8 @@ inspectMA <- function(dataset) {
                              mods = ~id * se, data = dataset)
   # not sure how to interpret these parameters in the interactive model
   # test for moderator in hedges & vevea weight model
-  # Don't we want se???????????????????????????????????????????????????????????????
   # return test results
-  out <- data.frame(d.obs = summary(rmamod)$b[1],
+  out = data.frame(d.obs = summary(rmamod)$b[1],
                     se.obs = summary(rmamod)$se[1],
                     d.p = summary(rmamod)$pval[1],
                     # Moderators
@@ -222,31 +216,55 @@ inspectMA <- function(dataset) {
                     p.pet = summary(egger.PET.test)$pval[1],
                     b.egger = summary(egger.PET.test)$b[2],
                     p.egger = summary(egger.PET.test)$pval[2],
-                    # TODO: joint PET-RMA tests
+                    # joint PET-RMA tests
+                    #Additive model 
                     joint.add.b1 = summary(joint.test.additive)$b[1],
                     joint.add.b2 = summary(joint.test.additive)$b[2],
                     joint.add.b3 = summary(joint.test.additive)$b[3],
+                    joint.add.b.se = summary(joint.test.additive)$b[4],
                     joint.add.p1 = summary(joint.test.additive)$pval[1],
                     joint.add.p2 = summary(joint.test.additive)$pval[2],
-                    joint.add.p3 = summary(joint.test.additive)$pval[3]
+                    joint.add.p3 = summary(joint.test.additive)$pval[3],
+                    joint.add.p.se = summary(joint.test.additive)$pval[4],
+                    #Interactive model
+                    joint.inter.b1 = summary(joint.test.interactive)$b[1],
+                    joint.inter.b2 = summary(joint.test.interactive)$b[2],
+                    joint.inter.b3 = summary(joint.test.interactive)$b[3],
+                    joint.inter.b.se = summary(joint.test.interactive)$b[4],
+                    joint.inter.b2.se = summary(joint.test.interactive)$b[5],
+                    joint.inter.b3.se = summary(joint.test.interactive)$b[6],
+                    joint.inter.p1 = summary(joint.test.interactive)$pval[1],
+                    joint.inter.p2 = summary(joint.test.interactive)$pval[2],
+                    joint.inter.p3 = summary(joint.test.interactive)$pval[3],
+                    joint.inter.p.se = summary(joint.test.interactive)$pval[4],
+                    joint.inter.p2.se = summary(joint.test.interactive)$pval[5],
+                    joint.inter.p3.se = summary(joint.test.interactive)$pval[6]
                     )
-  # to be continued...
-  
-  
   return(data.frame(out))
+  }
+
+# function to make various visuals of MA: (not working)
+
+visualizeMA <- function(dataset){
+  visu.data = funnel(dataset, level=c(90, 95, 99), 
+        shade = c("white", "grey75", "grey60"), refline=0) 
+  TF.visu.data = funnel(trimfill(dataset), refline = 0)
+  #output
+  return(visu.data, TF.visu.data)
 }
 
-#work space below:
-inspectMA(meta1.data)
-joint.test.additive <- rma(yi = d, sei = se,
-                    mods = ~id + se, data = meta1.data)
-summary(joint.test.additive)
-joint.add.b1 = summary(joint.test.additive)$b[1]
-joint.add.b2 = summary(joint.test.additive)$b[2]
-joint.add.b3 = summary(joint.test.additive)$b[3]
 
-joint.test.interactive <- rma(yi = d, sei = se,
-                             mods = ~id * se, data = dataset)
+# make example data set for testing & debugging
+set.seed(42069)
+meta1.data <- modMA(k = 20, d = c(0, .3, .6), 
+               sel = 1, propB = .70, QRP = 0)
+test = inspectMA(meta1.data)
+vistest = visualizeMA(meta1.data)
+View(meta1.data)
+
+#work space below:
+
+
 ```
 
 
@@ -322,8 +340,8 @@ setwd("..")
 install("cats")
 #Now you have a real, live, functioning R package. For example, try typing ?cat_function. You should see the standard help page pop up!
 
-#(Bonus) Step 6: Make the package a GitHub repo
-#This isn’t a post about learning to use git and GitHub — for that I recommend Karl Broman’s Git/GitHub Guide. The benefit, however, to putting your package onto GitHub is that you can use the devtools install_github() function to install your new package directly from the GitHub page.
+#Step 6: Make the package a GitHub repo
+# to putting your package onto GitHub is that you can use the devtools install_github() function to install your new package directly from the GitHub page.
 
 install_github('cats','github_username')
 
