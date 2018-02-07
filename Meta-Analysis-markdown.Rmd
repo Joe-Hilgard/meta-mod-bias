@@ -7,11 +7,13 @@ output: html_document
 
 Next steps:
 - better document the code (better names)
-- code book (what are the object and what do they do) ' @param is for package creating
-    - work on the values for what the functions do
-    - figure out how to set it up as a package 
+- code book (what are the object and what do they do) 
 
 - making loop, fitting data sets, and doing it repeatly 
+
+ 
+
+
 
 
 ```{r setup, include=FALSE}
@@ -153,6 +155,7 @@ funnel(ma4)
 
 ```
 
+
 ####*Code that does it all in one*
 ```{r}
 
@@ -181,6 +184,7 @@ modMA <- function(k, d, QRP, sel, propB) {
                colLim = 0, add = 0, verbose = T)
   return(bind_rows(d1, d2, d3, .id = "id"))
 }
+
 
 # function to analyze results of dataMA
 inspectMA <- function(dataset) {
@@ -266,6 +270,40 @@ View(meta1.data)
 
 
 ```
+
+####*Function output documentation*
+
+View:
+id the data set...
+d 
+p
+t
+N
+v
+se
+pow
+n1
+n2
+
+inspectMA:
+d.obs: estimated effect size between...? It says in rma that this is the beta value, so should we use b. instead? "estimated coefficents of the model"
+se.obs: standerd error of...
+d.p: p-value of...
+mod.b.obs.#:
+mod.p.#:
+d.obs.pet:
+p.pet:
+b.egger:
+p.egger:
+joint.add.b#:
+joint.add.b.se: coefficient of predictor 'se'
+- Be careful with the naming here -- it would be hazardous if we confuse "coefficient 'b' of predictor 'se'" with "the standard error of coefficient 'b'"
+joint.add.p#:
+joint.add.p.se:
+joint.inter.b#:
+joint.inter.b#.se:
+joint.inter.p#:
+joint.inter.p#.se:
 
 
 ####* r Package code*
