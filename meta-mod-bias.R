@@ -151,40 +151,37 @@ funnel(rma(yi = d, sei = se, data = testset.70, subset = id == 2))
 funnel(rma(yi = d, sei = se, data = testset.70, subset = id == 3))
 
 # Run simulations ----
-nSim <- 500
-
 # TODO: It would be smart to turn this loop into a function,
 #       then call the function instead of copying and pasting.
 # TODO: It would also be smart to save the output of summarize_run to an object
 #       but maybe we work with the raw output objects for now
 
 
-# set 1 : no bias
-output.nobias <- NULL; 
-for (i in 1:nSim) {
-  # make a dataset of simulated studies
-  # k studies each, effect sizes given by d
-  tempdata <- modMA(k = 20, d = c(0, .3, .6), 
-                sel = 0, propB = 0, QRP = 0)
-  # fit our various meta-analytic models to the simulated data
-  tempresult <- inspectMA(tempdata)
-  # add this iteration's results to the output object
-  output.nobias <- bind_rows(output.nobias, temp)
+runStudy <- function(nSim, k, d, sel, propB, QRP) {
+  output <- NULL; 
+  for (i in 1:nSim) {
+    # make a dataset of simulated studies
+    # k studies each, effect sizes given by d
+    tempdata <- modMA(k = k, d = d, 
+                      sel = sel, propB = propB, QRP = QRP)
+    # fit our various meta-analytic models to the simulated data
+    tempresult <- inspectMA(tempdata)
+    # add this iteration's results to the output object
+    output <- bind_rows(output, tempresult)
+  }
+  output
 }
+  
+runStudy(nSim = 3, k = 20, d = c(0, .3, .6), sel = 0, propB = 0, QRP = 0)
+
+# set 1 : no bias
+output.nobias <- runStudy(nSim = 3, k = 20, d = c(0, .3, .6), 
+                          sel = 0, propB = 0, QRP = 0)
 output.nobias
 
 # set 2: publication bias, 70+% of each subgroup stat. sig
-output.70p_pubbias <- NULL
-for (i in 1:nSim) {
-  # this iteration, run dataMA() on three populations
-  # k studies each, effect sizes given by d
-  tempdata <- modMA(k = 20, d = c(0, .3, .6),
-             sel = 1, QRP = 0, propB = .70)
-  # fit our various meta-analytic models to the simulated data
-  tempresult <- inspectMA()
-  # add this iteration's results to the output object
-  output.70p_pubbias <- bind_rows(output.70p_pubbias, tempresult)
-}
+output.70p_pubbias <- runStudy(nSim = 3, k = 20, d = c(0, .3, .6), 
+                               sel = 1, propB = .70, QRP = 0)
 output.70p_pubbias
 
 # functions for summarizing a simulation series in terms of mean estimates and
@@ -250,29 +247,11 @@ hist(meta1$N)
 # implement PET-RMA model
 
 # what if differences are more subtle?
-output.smallfx.nobias <- NULL
-for (i in 1:nSim) {
-  # this iteration, run dataMA() on three populations
-  # k studies each, effect sizes given by d
-  tempdata <- modMA(k = 20, d = c(0, .2, .4),
-             sel = 0, QRP = 0, propB = 0)
-  # fit our various meta-analytic models to the simulated data
-  tempresult <- inspectMA()
-  # add this iteration's results to the output object
-  output.smallfx.nobias <- bind_rows(output.smallfx.nobias, tempresult)
-}
+output.smallfx.nobias <- runStudy(nSim = 3, k = 20, d = c(0, .2, .4), 
+                                  sel = 0, propB = 0, QRP = 0)
 
-output.smallfx.70p_pubbias <- NULL
-for (i in 1:nSim) {
-  # this iteration, run dataMA() on three populations
-  # k studies each, effect sizes given by d
-  tempdata <- modMA(k = 20, d = c(0, .2, .4),
-             sel = 1, QRP = 0, propB = .70)
-  # fit our various meta-analytic models to the simulated data
-  tempresult <- inspectMA()
-  # add this iteration's results to the output object
-  output.smallfx.70p_pubbias <- bind_rows(output.smallfx.70p_pubbias, t)
-}
+output.smallfx.70p_pubbias <- runStudy(nSim = 3, k = 20, d = c(0, .2, .4), 
+                                       sel = 1, propB = 0.7, QRP = 0)
 
 summarize_run(output.smallfx.nobias) 
 # observed d = 0, .2, .4; power = 5.6%, 60%, 99%; egger type 1 6.4%
