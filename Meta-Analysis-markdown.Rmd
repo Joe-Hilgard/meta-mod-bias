@@ -247,14 +247,12 @@ inspectMA <- function(dataset) {
   return(data.frame(out))
   }
 
-# function to make various visuals of MA: (not working)
+# function to make various visuals of MA: (?)
 
 visualizeMA <- function(dataset){
-  visu.data = funnel(dataset, level=c(90, 95, 99), 
-        shade = c("white", "grey75", "grey60"), refline=0) 
-  TF.visu.data = funnel(trimfill(dataset), refline = 0)
+  visu.data = plot(dataset)
   #output
-  return(visu.data, TF.visu.data)
+  return(visu.data)
 }
 
 
@@ -273,37 +271,26 @@ View(meta1.data)
 
 ####*Function output documentation*
 
-View:
-id the data set...
-d 
-p
-t
-N
-v
-se
-pow
-n1
-n2
-
-inspectMA:
-d.obs: estimated effect size between...? It says in rma that this is the beta value, so should we use b. instead? "estimated coefficents of the model"
-se.obs: standerd error of...
-d.p: p-value of...
-mod.b.obs.#:
-mod.p.#:
-d.obs.pet:
-p.pet:
-b.egger:
-p.egger:
-joint.add.b#:
-joint.add.b.se: coefficient of predictor 'se'
+##**inspectMA** 
+if its a cell mean call it d, when its a difference call it b
+*d.obs* estimated effect size between...? It says in rma that this is the beta value, so should we use b. instead? "estimated coefficents of the model"
+*se.obs* standerd error of the estimate of the overall mean
+*d.p* if the observed effect sizes are significantly different?
+*mod.b.obs.#* estimated coefficents of the moderator
+*mod.p.#* significance vaule for the moderation test, significance indicates...
+*d.obs.pet*
+*p.pet* significance vaule for the PET test, significance indicates...
+*b.egger*
+*p.egger* significance vaule for the egger test, significance indicates...
+*joint.add.b#*
+*joint.add.b.se* coefficient of predictor 'se'
 - Be careful with the naming here -- it would be hazardous if we confuse "coefficient 'b' of predictor 'se'" with "the standard error of coefficient 'b'"
-joint.add.p#:
-joint.add.p.se:
-joint.inter.b#:
-joint.inter.b#.se:
-joint.inter.p#:
-joint.inter.p#.se:
+*joint.add.p#* significance vaule for coefficents for the PET-RMA (id+se) test, significance indicates...
+*joint.add.p.se* significance vaule for the additive effect of the PET-RMA (id+se) test, significance indicates...
+*joint.inter.b#*
+*joint.inter.b#.se*
+*joint.inter.p#* ignificance vaule of the coefficents for the PET-RMA (id*se) test, significance indicates...
+*joint.inter.p#.se* significance vaule of the interaction for the PET-RMA (id*se) test, significance indicates...
 
 
 ####* r Package code*
