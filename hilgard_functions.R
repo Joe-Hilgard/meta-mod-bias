@@ -33,10 +33,8 @@ modMA <- function(k, d, QRP, sel, propB) {
                multDV = 0, out = 0, mod = 0,
                colLim = 0, add = 0, verbose = T)
   # combine three subgroups into dataset, label subgroups with "id"
-  data.out <- bind_rows(d1, d2, d3, .id = "id")
-  # convert "id" to contr.sum coding
-  data.out$id <- factor(data.out$id)
-  contrasts(data.out$id) <- contr.sum 
+  data.out <- bind_rows(d1, d2, d3, .id = "id") %>% 
+    mutate(id = factor(id))
   # output simulated dataset
   return(data.out)
 }
@@ -137,15 +135,15 @@ summarize_run <- function(x) {
     # use transmute to drop all other columns
     transmute(d.obs,
               d.obs.pet,
-              d1.obs = mod.b.obs.1 + mod.b.obs.2,
-              d2.obs = mod.b.obs.1 + mod.b.obs.3,
-              d3.obs = mod.b.obs.1 - mod.b.obs.2 - mod.b.obs.3, 
-              joint.add.d1.obs = joint.add.b1 + joint.add.b2,
-              joint.add.d2.obs = joint.add.b1 + joint.add.b3,
-              joint.add.d3.obs = joint.add.b1 - joint.add.b2 - joint.add.b3,
-              joint.inter.d1.obs = joint.inter.b1 + joint.inter.b2,
-              joint.inter.d2.obs = joint.inter.b1 + joint.inter.b3,
-              joint.inter.d3.obs = joint.inter.b1 - joint.inter.b2 - joint.inter.b3)
+              d1.obs = mod.b.obs.1,
+              d2.obs = mod.b.obs.1 + mod.b.obs.2,
+              d3.obs = mod.b.obs.1 + mod.b.obs.3, 
+              joint.add.d1.obs = joint.add.b1,
+              joint.add.d2.obs = joint.add.b1 + joint.add.b2,
+              joint.add.d3.obs = joint.add.b1 + joint.add.b3,
+              joint.inter.d1.obs = joint.inter.b1,
+              joint.inter.d2.obs = joint.inter.b1 + joint.inter.b2,
+              joint.inter.d3.obs = joint.inter.b1 + joint.inter.b3)
 
   # Get power (or Type I) rates for each p-value test
   x.pow <- x %>% 

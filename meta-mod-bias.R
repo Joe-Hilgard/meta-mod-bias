@@ -81,10 +81,13 @@ output.smallfx.70p_pubbias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4),
 summarize_run(output.nobias) 
 # estimates: d = .00, .30, .60; power, 4.2%, 92%, 100%; egger type 1, 11%
 # PET shows strong downward bias, d = .14
+# check out the super poor power on the interactive model!
 
 summarize_run(output.70p_pubbias)
 # estimates: d = .45, .58, .74; power, 100%, 15%, 91%; egger power, 76%
 # note that differences between subpopulations have been halved
+# PET bias is really bad, probably drug down by the bad subgroup
+# interactive model makes it worse, not better.
 
 summarize_run(output.smallfx.nobias) 
 # observed d = 0, .2, .4; power = 5.6%, 60%, 99%; egger type 1 6.4%
