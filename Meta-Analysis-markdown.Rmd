@@ -225,24 +225,24 @@ inspectMA <- function(dataset) {
                     joint.add.b1 = summary(joint.test.additive)$b[1],
                     joint.add.b2 = summary(joint.test.additive)$b[2],
                     joint.add.b3 = summary(joint.test.additive)$b[3],
-                    joint.add.b.se = summary(joint.test.additive)$b[4],
+                    joint.add.b.egger = summary(joint.test.additive)$b[4],
                     joint.add.p1 = summary(joint.test.additive)$pval[1],
                     joint.add.p2 = summary(joint.test.additive)$pval[2],
                     joint.add.p3 = summary(joint.test.additive)$pval[3],
-                    joint.add.p.se = summary(joint.test.additive)$pval[4],
+                    joint.add.p.egger = summary(joint.test.additive)$pval[4],
                     #Interactive model
                     joint.inter.b1 = summary(joint.test.interactive)$b[1],
                     joint.inter.b2 = summary(joint.test.interactive)$b[2],
                     joint.inter.b3 = summary(joint.test.interactive)$b[3],
-                    joint.inter.b.se = summary(joint.test.interactive)$b[4],
-                    joint.inter.b2.se = summary(joint.test.interactive)$b[5],
-                    joint.inter.b3.se = summary(joint.test.interactive)$b[6],
+                    joint.inter.b1.egger = summary(joint.test.interactive)$b[4],
+                    joint.inter.b2.egger = summary(joint.test.interactive)$b[5],
+                    joint.inter.b3.egger = summary(joint.test.interactive)$b[6],
                     joint.inter.p1 = summary(joint.test.interactive)$pval[1],
                     joint.inter.p2 = summary(joint.test.interactive)$pval[2],
                     joint.inter.p3 = summary(joint.test.interactive)$pval[3],
-                    joint.inter.p.se = summary(joint.test.interactive)$pval[4],
-                    joint.inter.p2.se = summary(joint.test.interactive)$pval[5],
-                    joint.inter.p3.se = summary(joint.test.interactive)$pval[6]
+                    joint.inter.p1.egger = summary(joint.test.interactive)$pval[4],
+                    joint.inter.p2.egger = summary(joint.test.interactive)$pval[5],
+                    joint.inter.p3.egger = summary(joint.test.interactive)$pval[6]
                     )
   return(data.frame(out))
   }
@@ -276,21 +276,20 @@ if its a cell mean call it d, when its a difference call it b
 *d.obs* estimated effect size between...? It says in rma that this is the beta value, so should we use b. instead? "estimated coefficents of the model"
 *se.obs* standerd error of the estimate of the overall mean
 *d.p* if the observed effect sizes are significantly different?
-*mod.b.obs.#* estimated coefficents of the moderator
-*mod.p.#* significance vaule for the moderation test, significance indicates...
-*d.obs.pet*
-*p.pet* significance vaule for the PET test, significance indicates...
-*b.egger*
-*p.egger* significance vaule for the egger test, significance indicates...
-*joint.add.b#*
-*joint.add.b.se* coefficient of predictor 'se'
-- Be careful with the naming here -- it would be hazardous if we confuse "coefficient 'b' of predictor 'se'" with "the standard error of coefficient 'b'"
-*joint.add.p#* significance vaule for coefficents for the PET-RMA (id+se) test, significance indicates...
-*joint.add.p.se* significance vaule for the additive effect of the PET-RMA (id+se) test, significance indicates...
-*joint.inter.b#*
-*joint.inter.b#.se*
-*joint.inter.p#* ignificance vaule of the coefficents for the PET-RMA (id*se) test, significance indicates...
-*joint.inter.p#.se* significance vaule of the interaction for the PET-RMA (id*se) test, significance indicates...
+*mod.b.obs.#* estimated coefficents of the moderator (if dummy codes: difference between one group mean vs. comparison group mean; if contrast codes: difference between one group mean vs. grand average)
+*mod.p.#* significance value for the moderation test, significance indicates moderator coefficient unusual for chance
+*d.obs.pet* bias-adjusted PET estimate for delta
+*p.pet* significance value for the PET estimate, significance indicates bias-adjusted estimate larger than chance
+*b.egger* Egger coefficient for relationship between effect size and standard error
+*p.egger* significance value for the egger test, significance indicates small-study effects possibly caused by bias
+*joint.add.b#* PET-RMA (id+se) adjusted coefficients (grand mean & cell deviations OR cornerstone mean & cell deviations)
+*joint.add.b.egger* coefficient of predictor 'se'
+*joint.add.p#* significance value for coefficents for the PET-RMA (id+se) test, significance indicates significant bias-adjusted grand mean and/or differences between bias-adjusted subgroup means
+*joint.add.p.egger* significance value for the additive effect of the PET-RMA (id+se) test, significance indicates overall small-study effect
+*joint.inter.b#* PET-RMA (id*se) adjusted coefficients (grand mean & cell deviations OR cornerstone mean & cell deviations)
+*joint.inter.b#.egger* Egger slopes (grand slope & subgroup differences in slope OR cornerstone slope & subgroup differences in slope)
+*joint.inter.p#* significance value of the PET-RMA (id*se) adjusted estimates. Significance indicates moderation between bias-adjusted cell means.
+*joint.inter.p#.egger* significance value of the interaction for the PET-RMA (id*se) test, significance indicates overall small-study effect or subgroup differences in small-study effects
 
 
 ####* r Package code*
@@ -383,11 +382,11 @@ inspectMA <- function(dataset) {
                     joint.add.b1 = summary(joint.test.additive)$b[1],
                     joint.add.b2 = summary(joint.test.additive)$b[2],
                     joint.add.b3 = summary(joint.test.additive)$b[3],
-                    joint.add.b.se = summary(joint.test.additive)$b[4],
+                    joint.add.b.egger = summary(joint.test.additive)$b[4],
                     joint.add.p1 = summary(joint.test.additive)$pval[1],
                     joint.add.p2 = summary(joint.test.additive)$pval[2],
                     joint.add.p3 = summary(joint.test.additive)$pval[3],
-                    joint.add.p.se = summary(joint.test.additive)$pval[4],
+                    joint.add.p.egger = summary(joint.test.additive)$pval[4],
                     #Interactive model
                     joint.inter.b1 = summary(joint.test.interactive)$b[1],
                     joint.inter.b2 = summary(joint.test.interactive)$b[2],

@@ -196,7 +196,8 @@ summarize_run <- function(x) {
   x.est <- x %>% 
     summarize_each(funs(mean), d.obs, se.obs, mod.b.obs.1:mod.b.obs.3,
                    d.obs.pet, b.egger) %>% 
-    # make cell means
+    # make cell means (NOTE: ASSUMES DUMMY CODING)
+    # Might be a simpler way... lsmeans package?
     mutate(d1.obs = mod.b.obs.1,
            d2.obs = mod.b.obs.1 + mod.b.obs.2,
            d3.obs = mod.b.obs.1 + mod.b.obs.3)
