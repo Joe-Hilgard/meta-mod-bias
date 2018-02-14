@@ -6,15 +6,24 @@ output: html_document
 ---
 
 Next steps:
-- better document the code (better names)
-- code book (what are the object and what do they do) 
+- play with dataMA and its arguments (esp. biasing args like QPR, sel, and propB)
+   - may consult source code in SimStudies.R 
+   - make funnel plots and models until familiar with process
+- play with modMA and runStudy() 
+   - use different arguments and play wiht summarizing and graphing output
+   hint: use dplyr:summarize and ggplot2
 
-- making loop, fitting data sets, and doing it repeatly 
+####*Techniques for detecting and adjusting bias*
+**Ways to detect bias**
+- Funnel plots
+- Forest plots?
+- Egger Test (looks at slope)
 
- 
-
-
-
+**Ways to detect and adjust bias**
+- Trim and fill
+- PET (just looks at intercept) and PEESE
+- P-curve
+- P-uniform
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -30,131 +39,6 @@ library(metafor)
 # load study-simulating functions
 source("sim-studies.R")
 ```
-
-
-####*Simulate a meta-analytic dataset with dataMA()*
-```{r}
-dat <- dataMA(k = 50,
-              QRP = 0,
-              sel =0,
-              sigma = 0,
-              min = 50, max = 500)
-
-# let's look at it
-head(dat)
-
-# let's fit our first meta-analysis
-ma1 <- rma(yi = d, sei = se, data = dat)
-summary(ma1)
-funnel(ma1)
-trimfill(ma1)
-funnel(trimfill(ma1))
-funnel(ma1, level=c(90, 95, 99), 
-        shade = c("white", "grey75", "grey60"), refline=0)
-
-```
-
-####*Simulate a null effect*
-```{r}
-# simulate null effect dataset with dataMA()
-dat.null <- dataMA(k = 50,
-              QRP = 0,
-              sel =0,
-              sigma = 0,
-              min = 50, max = 500,
-              meanD = 0)
-
-#meta-analysis for a null effect
-ma2 = rma(yi = d, sei = se, data = dat.null)
-summary(ma2)
-funnel(ma2)
-forest(ma2)
-
-#same thing but using less data so we can see the forest plot
-ma3 = rma(yi = d, sei = se, data = head(dat.null))
-summary(ma3)
-forest(ma3)
-```
-
-####*Techniques for detecting and adjusting bias*
-**Ways to detect bias**
-- Funnel plots
-- Forest plots?
-- Egger Test (looks at slope)
-
-**Ways to detect and adjust bias**
-- Trim and fill
-- PET (just looks at intercept) and PEESE
-- P-curve
-- P-uniform
-
-####*Simulate bias data*
-```{r}
-dat.bias = dataMA(k = 50,
-                  QRP = 0,
-                  sel =1, propB = .9, # % of each subgroup stat. sig
-                  sigma = 0,
-                  min = 50, max = 500,
-                  meanD = 0)
-ma4 = rma(yi = d, sei = se, data = dat.bias)
-summary(ma4)
-funnel(ma4)
-funnel(ma4, refline = 0)
-#refline is the vertical reference line values, set to 0 to see bias
-
-#Test for bias: using the egger test
-ma4.1 <- rma(yi = d, sei = se,
-                  mods = ~se, data = dat.bias)
-plot(ma4.1)
-funnel(ma4.1)
-
-#:using trim and fill to "correct" data
-trimfill(ma4)
-funnel(trimfill(ma4), refline = 0)
-
-#:using PET and PEESE
-petrma.easy <- modMA(100, d = c(0, 1, 2),
-                QRP = 0, sel = 0, propB = 0) #does pet rma work in ideal case
-petrma.add.easy <- rma(yi = d, sei = se, 
-                       mods = ~ id + se, data = petrma.easy) #SE + id
-summary(petrma.add.easy)
-petrma.mul.easy <- rma(yi = d, sei = se, 
-                       mods = ~ id * se, data = petrma.easy) #SE * id
-summary(petrma.mul.easy)
-
-petrma.bias <- modMA(100, d = c(0, 1, 2),
-                     QRP = 0, sel = 1, propB = .7)
-petrma.add.bias <- rma(yi = d, sei = se, 
-                       mods = ~ id + se, data = petrma.bias)
-summary(petrma.add.bias)
-petrma.mul.bias <- rma(yi = d, sei = se, 
-                       mods = ~ id * se, data = petrma.bias)
-summary(petrma.mul.bias)
-#:using P-curve
-
-#:using P-uniform 
-
-```
-
-####*Simulate a moderator effect (meta-regression)*
-```{r}
-dat <- dataMA(k = 50,
-              QRP = 0,
-              sel =0,
-              sigma = 0,
-              min = 50, max = 500)
-dat.mod <- data.frame(dat, "mod" = runif(50))
-ma5 = rma(yi = d, sei = se, data = dat.mod,
-          mods = mod)
-summary(ma5)
-plot(ma5)
-
-ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
-plot(ma6)
-funnel(ma4)
-
-```
-
 
 ####*Code that does it all in one*
 ```{r}
@@ -270,10 +154,36 @@ View(meta1.data)
 ```
 
 ####*Function output documentation*
+##**dataMA**
+*k* the number of studies in the MA
+*meanD* the true effect (or the average of the true effects if heterogeneity exists)
+*sigma* the SD around the true effect
+*maxN* the max possible group size that could be created (this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples)
+*minN* the min of the truncated normal for sample size
+*meanN* the mean of the truncated normal for sample size
+*sdN* the SD of the truncated normal for sample size
+*QRP* 1 if QRP/p-hacks are available, 0 otherwise
+*sel* 1 if publication bias selection exists, 0 otherwise
+*propB* the proportion of the sample affected by bias
+*cbdv* the correlation between the multiple DVs
+*multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
+*out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
+*mod* 1 if optional moderator as a hack, 0 otherwise | analyses after running the interaction with some moderator
+*colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
+*add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
+
+*d* effect size d
+*p* p value for the two group comparison
+*t* t value for the two group comparison
+*N* total N
+*v* variance for the effect size
+*se* standard error for the effect size
+*pow* power given the true effect for the two group comparison
+*n1* experimental group sample size
+*n2* control group sample size
 
 ##**inspectMA** 
-if its a cell mean call it d, when its a difference call it b
-*d.obs* estimated effect size between...? It says in rma that this is the beta value, so should we use b. instead? "estimated coefficents of the model"
+*d.obs* estimated coefficents of the model
 *se.obs* standerd error of the estimate of the overall mean
 *d.p* if the observed effect sizes are significantly different?
 *mod.b.obs.#* estimated coefficents of the moderator (if dummy codes: difference between one group mean vs. comparison group mean; if contrast codes: difference between one group mean vs. grand average)
@@ -429,6 +339,120 @@ install_github('cats','github_username')
 
 ```
 
+####*Simulate a meta-analytic dataset with dataMA()*
+
+*Basic Model*
+```{r}
+#create data
+basic.data = dataMA(k = 10, meanD = .3, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+
+#Simulate
+basic = rma(yi = d, sei = se, data = basic.data)
+#View
+summary(basic)
+funnel(basic)
+forest(basic)
+funnel(trimfill(basic))
+funnel(basic, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+
+#What is verbose printing?
+```
+
+*Null Model*
+```{r}
+null.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+
+null = rma(yi = d, sei = se, data = null.data)
+
+summary(null)
+funnel(null)
+funnel(null, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+forest(null)
+
+```
+
+*Bias Model*
+*QRP* 1 if QRP/p-hacks are available, 0 otherwise
+*sel* 1 if publication bias selection exists, 0 otherwise
+*propB* the proportion of the sample affected by bias
+*cbdv* the correlation between the multiple DVs
+*multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
+*out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
+*mod* 1 if optional moderator as a hack, 0 otherwise | analyses after running the interaction with some moderator
+*colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
+*add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
+```{r}
+QRP.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
+QRPr = rma(yi = d, sei = se, data = QRP.data)
+
+sel.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
+selr = rma(yi = d, sei = se, data = sel.data)
+
+#propB.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6)
+
+cbdv.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
+cbdvr = rma(yi = d, sei = se, data = cbdv.data)
+
+multDV.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
+multDVr = rma(yi = d, sei = se, data = multDV.data)
+
+out.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
+outr = rma(yi = d, sei = se, data = out.data)
+
+mod.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
+modr = rma(yi = d, sei = se, data = mod.data)
+
+colLim.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
+colLimr = rma(yi = d, sei = se, data = colLim.data)
+
+add.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
+addr = rma(yi = d, sei = se, data = add.data)
+
+funnel(null, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "null")
+funnel(QRPr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "QRP: p-hacks")
+funnel(selr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "sel: publication bias")
+funnel(cbdvr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "cbdv: correlation b/w multi. DVs")
+funnel(multDVr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "multDV: as a hack (publish just sig.)")
+funnel(outr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "out: outlier exlusion or not")
+funnel(modr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "mod: remove moderator?")
+funnel(colLimr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "colLim: collect more data for p>.05")
+funnel(addr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "add: add data to cells for p>.05")
+
+```
 
 
 
+*Simulate a moderator effect (meta-regression)*
+```{r}
+dat <- dataMA(k = 50,
+              QRP = 0,
+              sel =0,
+              sigma = 0,
+              min = 50, max = 500)
+dat.mod <- data.frame(dat, "mod" = runif(50))
+ma5 = rma(yi = d, sei = se, data = dat.mod,
+          mods = mod)
+summary(ma5)
+plot(ma5)
+
+ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
+plot(ma6)
+funnel(ma4)
+```
+
+*modMA*
+```{r}
+
+
+```
