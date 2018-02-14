@@ -75,10 +75,10 @@ expFinU = function(delta, tau, empN = TRUE, meanN, minN, empN.boost=0){
   
   #calculate d, the variance of d, the p-value, the t-stat, and n.
   d = (m1 - m2)/S
-  
+	
   d_v = (n1 + n2)/(n1 * n2) + (d^2 / (2*(n1+n2)))
   d_se = sqrt(d_v)
-  
+	
   p = test$p.value
   t = as.numeric(test$statistic)
   N = n1+n2
@@ -382,7 +382,7 @@ expFinB = function(delta, tau, empN, maxN, meanN, minN, strat, empN.boost=empN.b
                  D = G[,,5][1,1],      # the study-lvl true effect
                  multDV=1,out=0,mod=0) # MODERATE
     }
-    
+  
   }
   
   #if QRP strategy is AGGRESSIVE
@@ -474,11 +474,11 @@ dataMA <- function(k, delta, tau,
   }else if(qrpEnv=='low'){
     noneP = 0.50; modP = 0.40; aggP = 0.10
   }else if(qrpEnv=='med'){
-    noneP = 0.30; modP = 0.50; aggP = 0.20
+      noneP = 0.30; modP = 0.50; aggP = 0.20
   }else if(qrpEnv=='high'){
-    noneP = 0.10; modP = 0.40; aggP = 0.50
+        noneP = 0.10; modP = 0.40; aggP = 0.50
   }else{
-    print('ERROR: qrpEnv must be none, low, med, or high')}
+          print('ERROR: qrpEnv must be none, low, med, or high')}
   
   #get number of to-be observed studies for all cases
   kU_None = round(kU*noneP) 
@@ -627,68 +627,68 @@ dataMA <- function(k, delta, tau,
 
 # k=10;delta=.3;tau=.1;qrpEnv="med";censorFunc="A"; empN=TRUE; maxN = 1000; meanN = NA; minN = 0; empN.boost = 0
 simMA <- function(k, delta, tau, qrpEnv= c("none", "low", "medium", "high"), censorFunc = c("none", "medium", "high"), empN = TRUE, maxN = 1000, meanN = NA, minN = 0, empN.boost = 0, verbose=FALSE) {  
-  
-  # validate parameters
-  if (length(censorFunc) == 1) {
-    censorFunc <- match.arg(censorFunc, c("none", "medium", "high"))
-  }
-  qrpEnv <- match.arg(qrpEnv, c("none", "low", "medium", "high"))
-  
+    
+	# validate parameters
+	if (length(censorFunc) == 1) {
+		censorFunc <- match.arg(censorFunc, c("none", "medium", "high"))
+	}
+	qrpEnv <- match.arg(qrpEnv, c("none", "low", "medium", "high"))
+		
   # Define the QRP environments:
-  # get the proportions of studies produced under each QRP strategy
+	# get the proportions of studies produced under each QRP strategy
   if (qrpEnv == 'none'){
     noneP = 1; modP = 0; aggP = 0
   } else if (qrpEnv == 'low'){
     noneP = 0.50; modP = 0.40; aggP = 0.10
   } else if (qrpEnv == 'medium'){
-    noneP = 0.30; modP = 0.50; aggP = 0.20
+		noneP = 0.30; modP = 0.50; aggP = 0.20
   } else if (qrpEnv == 'high'){
-    noneP = 0.10; modP = 0.40; aggP = 0.50
+		noneP = 0.10; modP = 0.40; aggP = 0.50
   } else {
-    print('ERROR: qrpEnv must be none, low, medium, or high')
-  }
+		print('ERROR: qrpEnv must be none, low, medium, or high')
+	}
   
-  
-  datMA <- data.frame()
-  
-  # repeatedly add a new study from that environment until the desired number of k is achieved
-  repeat {		
-    thisStudiesHackingStyle <- sample(x = c("none", "mod", "agg"), size=1, replace=TRUE, prob = c(noneP, modP, aggP))
-    
-    if (thisStudiesHackingStyle == "none") {
+	
+	datMA <- data.frame()
+	
+	# repeatedly add a new study from that environment until the desired number of k is achieved
+	repeat {		
+		thisStudiesHackingStyle <- sample(x = c("none", "mod", "agg"), size=1, replace=TRUE, prob = c(noneP, modP, aggP))
+		
+		if (thisStudiesHackingStyle == "none") {
       res <- expFinU(delta=delta, tau=tau, empN=empN, meanN=meanN, minN=minN, empN.boost=empN.boost)			
       res[11] = 0 #QRP style
-    } else if (thisStudiesHackingStyle == "mod") {
+		} else if (thisStudiesHackingStyle == "mod") {
       res <- expFinB(delta=delta, tau=tau, empN=empN, maxN=maxN, meanN=meanN, minN=minN, strat="mod", empN.boost=empN.boost)			
       res[11] = 1 #QRP style
-    } else if (thisStudiesHackingStyle == "agg") {
+		} else if (thisStudiesHackingStyle == "agg") {
       res <- expFinB(delta=delta, tau=tau, empN=empN, maxN=maxN, meanN=meanN, minN=minN, strat="agg", empN.boost=empN.boost)			
       res[11] = 2 #QRP style
-    }
-    
-    # inflict publication bias via the censoring function
-    if (is.character(censorFunc) && censorFunc == "none") {
-      publish <- 1
-    } else if (is.character(censorFunc) && censorFunc == "medium") {
-      # predefined censor function for "medium publication bias"
-      publish <- rbinom(n=1, size=1, prob=censorMedium(res[2], direction = sign(res[1])))
-    } else if (is.character(censorFunc) && censorFunc == "high") {
-      # predefined censor function for "strong publication bias"
-      publish <- rbinom(n=1, size=1, prob=censorHigh(res[2], direction = sign(res[1])))
-    } else if (is.vector(censorFunc) && length(censorFunc)==3) {
-      publish <- rbinom(n=1, size=1, prob=censor(res[2], direction = sign(res[1]), posSign_NS_baseRate = censorFunc[1], negSign_NS_baseRate = censorFunc[2], counterSig_rate = censorFunc[3]))
-    } else {
-      stop("Wrong specification of censor function!")
-    }
-    
-    if (publish == 1) {
-      datMA <- rbind(datMA, res)
-      if (verbose==TRUE) print(nrow(datMA))
-    }
-    
-    if (nrow(datMA) >= k) {break}
-    
-  } # of repeat
+		}
+		
+		# inflict publication bias via the censoring function
+		if (is.character(censorFunc) && censorFunc == "none") {
+			publish <- 1
+		} else if (is.character(censorFunc) && censorFunc == "medium") {
+			# predefined censor function for "medium publication bias"
+			publish <- rbinom(n=1, size=1, prob=censorMedium(res[2], direction = sign(res[1])))
+		} else if (is.character(censorFunc) && censorFunc == "high") {
+			# predefined censor function for "strong publication bias"
+			publish <- rbinom(n=1, size=1, prob=censorHigh(res[2], direction = sign(res[1])))
+		} else if (is.vector(censorFunc) && length(censorFunc)==3) {
+			publish <- rbinom(n=1, size=1, prob=censor(res[2], direction = sign(res[1]), posSign_NS_baseRate = censorFunc[1], negSign_NS_baseRate = censorFunc[2], counterSig_rate = censorFunc[3]))
+		} else {
+			stop("Wrong specification of censor function!")
+		}
+				
+		if (publish == 1) {
+			datMA <- rbind(datMA, res)
+			if (verbose==TRUE) print(nrow(datMA))
+		}
+		
+		if (nrow(datMA) >= k) {break}
+		
+	} # of repeat
   
   #name columnes
   colnames(datMA) = c( 'd',       # effect size, d
@@ -702,14 +702,14 @@ simMA <- function(k, delta, tau, qrpEnv= c("none", "low", "medium", "high"), cen
                        'n2',      # control group sample size
                        'D',       # the study-level true effect
                        'qrp')     # 0 = 'none', 1 = 'mod', 2 = 'agg'
-  
-  
-  # Add Hedge's correction factor
-  df = datMA$n1 + datMA$n2 - 2
-  J = 1- 3/(4*df - 1)
-  datMA$g = datMA$d*J
-  datMA$g_v = datMA$v*J^2
-  datMA$g_se = sqrt(datMA$g_v)											 
+											 
+											 
+ 	# Add Hedge's correction factor
+	df = datMA$n1 + datMA$n2 - 2
+ 	J = 1- 3/(4*df - 1)
+ 	datMA$g = datMA$d*J
+ 	datMA$g_v = datMA$v*J^2
+ 	datMA$g_se = sqrt(datMA$g_v)											 
   
   return(datMA)
 }
