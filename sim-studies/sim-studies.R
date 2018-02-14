@@ -30,6 +30,7 @@ outlier=function(x,mean,sd){
 # tau indicated heterogeneity
 # minN and meanN are fed to a negative binomial for 
 # sample size
+# empN.boost toggles an additional boost to sample size
 
 # results from an unbiased experiment 
 expFinU = function(delta, tau, empN = TRUE, meanN, minN, empN.boost=0){

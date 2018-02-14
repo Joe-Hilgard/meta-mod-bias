@@ -37,7 +37,7 @@ library(compiler)
 library(metafor)
 
 # load study-simulating functions
-source("sim-studies.R")
+source("sim-studies/sim-studies.R", chdir=TRUE)
 ```
 
 ####*Code that does it all in one*
