@@ -361,7 +361,7 @@ funnel(basic, level=c(90, 95, 99),
 
 *Null Model*
 ```{r}
-null.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+null.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
 
 null = rma(yi = d, sei = se, data = null.data)
 
@@ -375,8 +375,10 @@ forest(null)
 
 *Bias Model*
 *QRP* 1 if QRP/p-hacks are available, 0 otherwise
+#these two need to be together
 *sel* 1 if publication bias selection exists, 0 otherwise
 *propB* the proportion of the sample affected by bias
+
 *cbdv* the correlation between the multiple DVs
 *multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
 *out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
@@ -384,30 +386,30 @@ forest(null)
 *colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
 *add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
 ```{r}
-QRP.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
+QRP.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
 QRPr = rma(yi = d, sei = se, data = QRP.data)
 
-sel.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
+sel.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
 selr = rma(yi = d, sei = se, data = sel.data)
 
-#propB.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6)
+propB.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6, sel = 1)
 
-cbdv.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
+cbdv.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
 cbdvr = rma(yi = d, sei = se, data = cbdv.data)
 
-multDV.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
+multDV.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
 multDVr = rma(yi = d, sei = se, data = multDV.data)
 
-out.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
+out.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
 outr = rma(yi = d, sei = se, data = out.data)
 
-mod.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
+mod.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
 modr = rma(yi = d, sei = se, data = mod.data)
 
-colLim.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
+colLim.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
 colLimr = rma(yi = d, sei = se, data = colLim.data)
 
-add.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
+add.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
 addr = rma(yi = d, sei = se, data = add.data)
 
 funnel(null, level=c(90, 95, 99),
