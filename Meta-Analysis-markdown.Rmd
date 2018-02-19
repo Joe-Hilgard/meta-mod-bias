@@ -343,7 +343,6 @@ basic.data = dataMA(k = 10, delta = .2, tau = 0,
                selProp = 0, qrpEnv = "none", empN.boost = 0)
 
 
-
 #Simulate
 basic = rma(yi = d, sei = se, data = basic.data)
 #View
