@@ -6,6 +6,8 @@ output: html_document
 ---
 
 Next steps:
+- make arguments work
+
 - play with dataMA and its arguments (esp. biasing args like QPR, sel, and propB)
    - may consult source code in SimStudies.R 
    - make funnel plots and models until familiar with process
@@ -40,32 +42,31 @@ library(metafor)
 source("sim-studies/sim-studies.R", chdir=TRUE)
 ```
 
+*k* the number of studies in the MA
+*delta* the true effect (or the average of the true effects if heterogeneity exists)
+*tau* the SD around the true effect
+*empN* a logical, whether to use the empirical per-group N distribution
+*maxN* the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
+*minN* the min of the truncated normal for sample size
+*meanN* the average of the truncated normal for sample size
+
+*selProp* the proportion of the sample affected by bias
+*qrpEnv* the qrp environment that produced the literature: 'none', 'low', 'med', 'high'
+*empN.boost* A constant that is added to the empirical effect sizes
 ####*Code that does it all in one*
 ```{r}
 
 # Function that runs dataMA three times + fake data
-modMA <- function(k, d, QRP, sel, propB) {
-  d1 <- dataMA(k = k, 
-               QRP = QRP, sel = sel, propB = propB, 
-               meanD = d[1], sigma = 0,
-               cbdv = .5, maxN = 200, minN = 20,
-               meanN = 50, sdN = 20,
-               multDV = 0, out = 0, mod = 0,
-               colLim = 0, add = 0, verbose = T)
-  d2 <- dataMA(k = k, 
-               QRP = QRP, sel = sel, propB = propB, 
-               meanD = d[2], sigma = 0,
-               cbdv = .5, maxN = 200, minN = 20,
-               meanN = 50, sdN = 20,
-               multDV = 0, out = 0, mod = 0,
-               colLim = 0, add = 0, verbose = T)
-  d3 <- dataMA(k = k, 
-               QRP = QRP, sel = sel, propB = propB, 
-               meanD = d[3], sigma = 0,
-               cbdv = .5, maxN = 200, minN = 20,
-               meanN = 50, sdN = 20,
-               multDV = 0, out = 0, mod = 0,
-               colLim = 0, add = 0, verbose = T)
+modMA <- function(k, selProp, qrpEnv, empN.boost) {
+  d1 <- dataMA(k = k, delta = .2, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d2 <- dataMA(k = k, delta = .5, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d3 <- dataMA(k = k, delta = .8, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
   return(bind_rows(d1, d2, d3, .id = "id"))
 }
 
@@ -142,8 +143,7 @@ visualizeMA <- function(dataset){
 
 # make example data set for testing & debugging
 set.seed(42069)
-meta1.data <- modMA(k = 20, d = c(0, .3, .6), 
-               sel = 1, propB = .70, QRP = 0)
+meta1.data <- modMA(k = 20, selProp = .5, qrpEnv = "high", empN.boost = .1)
 test = inspectMA(meta1.data)
 vistest = visualizeMA(meta1.data)
 View(meta1.data)
@@ -156,21 +156,15 @@ View(meta1.data)
 ####*Function output documentation*
 ##**dataMA**
 *k* the number of studies in the MA
-*meanD* the true effect (or the average of the true effects if heterogeneity exists)
-*sigma* the SD around the true effect
-*maxN* the max possible group size that could be created (this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples)
+*delta* the true effect (or the average of the true effects if heterogeneity exists)
+*tau* the SD around the true effect
+*empN* a logical, whether to use the empirical per-group N distribution
+*maxN* the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
 *minN* the min of the truncated normal for sample size
-*meanN* the mean of the truncated normal for sample size
-*sdN* the SD of the truncated normal for sample size
-*QRP* 1 if QRP/p-hacks are available, 0 otherwise
-*sel* 1 if publication bias selection exists, 0 otherwise
-*propB* the proportion of the sample affected by bias
-*cbdv* the correlation between the multiple DVs
-*multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
-*out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
-*mod* 1 if optional moderator as a hack, 0 otherwise | analyses after running the interaction with some moderator
-*colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
-*add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
+*meanN* the average of the truncated normal for sample size
+*selProp* the proportion of the sample affected by bias
+*qrpEnv* the qrp environment that produced the literature: 'none', 'low', 'med', 'high'
+*empN.boost* A constant that is added to the empirical effect sizes
 
 *d* effect size d
 *p* p value for the two group comparison
