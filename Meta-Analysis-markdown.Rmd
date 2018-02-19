@@ -338,7 +338,11 @@ install_github('cats','github_username')
 *Basic Model*
 ```{r}
 #create data
-basic.data = dataMA(k = 10, meanD = .3, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+basic.data = dataMA(k = 10, delta = .2, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = 0, qrpEnv = "none", empN.boost = 0)
+
+
 
 #Simulate
 basic = rma(yi = d, sei = se, data = basic.data)
@@ -350,12 +354,13 @@ funnel(trimfill(basic))
 funnel(basic, level=c(90, 95, 99),
         shade = c("white", "grey75", "grey60"), refline=0)
 
-#What is verbose printing?
 ```
 
 *Null Model*
 ```{r}
-null.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+null.data = dataMA(k = 10, delta = 0, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = 0, qrpEnv = "none", empN.boost = 0)
 
 null = rma(yi = d, sei = se, data = null.data)
 
@@ -368,60 +373,42 @@ forest(null)
 ```
 
 *Bias Model*
-*QRP* 1 if QRP/p-hacks are available, 0 otherwise
-*sel* 1 if publication bias selection exists, 0 otherwise
-*propB* the proportion of the sample affected by bias
-*cbdv* the correlation between the multiple DVs
-*multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
-*out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
-*mod* 1 if optional moderator as a hack, 0 otherwise | analyses after running the interaction with some moderator
-*colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
-*add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
+*k* the number of studies in the MA
+*delta* the true effect (or the average of the true effects if heterogeneity exists)
+*tau* the SD around the true effect
+*empN* a logical, whether to use the empirical per-group N distribution
+*maxN* the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
+*minN* the min of the truncated normal for sample size
+*meanN* the average of the truncated normal for sample size
+
+*selProp* the proportion of the sample affected by bias
+*qrpEnv* the qrp environment that produced the literature: 'none', 'low', 'med', 'high'
+*empN.boost* A constant that is added to the empirical effect sizes
 ```{r}
-QRP.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
-QRPr = rma(yi = d, sei = se, data = QRP.data)
+selProp.data = dataMA(k = 10, delta = 0, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = .50, qrpEnv = "none", empN.boost = 0)
+selProp1 = rma(yi = d, sei = se, data = selProp.data)
 
-sel.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
-selr = rma(yi = d, sei = se, data = sel.data)
+qrpEnv.data = dataMA(k = 10, delta = 0, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = 0, qrpEnv = "high", empN.boost = 0)
+qrpEnv1 = rma(yi = d, sei = se, data = qrpEnv.data)
 
-#propB.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6)
-
-cbdv.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
-cbdvr = rma(yi = d, sei = se, data = cbdv.data)
-
-multDV.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
-multDVr = rma(yi = d, sei = se, data = multDV.data)
-
-out.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
-outr = rma(yi = d, sei = se, data = out.data)
-
-mod.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
-modr = rma(yi = d, sei = se, data = mod.data)
-
-colLim.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
-colLimr = rma(yi = d, sei = se, data = colLim.data)
-
-add.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
-addr = rma(yi = d, sei = se, data = add.data)
+empN.boost.data = dataMA(k = 10, delta = 0, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = 0, qrpEnv = "none", empN.boost = .3)
+empN.boost1 = rma(yi = d, sei = se, data = empN.boost.data)
 
 funnel(null, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "null")
-funnel(QRPr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "QRP: p-hacks")
-funnel(selr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "sel: publication bias")
-funnel(cbdvr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "cbdv: correlation b/w multi. DVs")
-funnel(multDVr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "multDV: as a hack (publish just sig.)")
-funnel(outr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "out: outlier exlusion or not")
-funnel(modr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "mod: remove moderator?")
-funnel(colLimr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "colLim: collect more data for p>.05")
-funnel(addr, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0, main = "add: add data to cells for p>.05")
+        shade = c("white", "grey75", "grey60"), refline=0)
+funnel(selProp1, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+funnel(qrpEnv1, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+funnel(empN.boost1, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+
 
 ```
 
