@@ -57,7 +57,7 @@ source("sim-studies/sim-studies.R", chdir=TRUE)
 ```{r}
 
 # Function that runs dataMA three times + fake data
-modMA <- function(k, selProp, qrpEnv, empN.boost) {
+modMA <- function(k, selProp = 0, qrpEnv = "none", empN.boost = 0) {
   d1 <- dataMA(k = k, delta = .2, tau = 0, 
                empN = 0, maxN = 200, minN = 20, meanN = 50, 
                selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
@@ -67,7 +67,7 @@ modMA <- function(k, selProp, qrpEnv, empN.boost) {
   d3 <- dataMA(k = k, delta = .8, tau = 0, 
                empN = 0, maxN = 200, minN = 20, meanN = 50, 
                selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
-  return(bind_rows(d1, d2, d3, .id = "id"))
+  return(bind_rows(data.frame(d1), data.frame(d2), data.frame(d3), .id = "id"))
 }
 
 
@@ -140,10 +140,9 @@ visualizeMA <- function(dataset){
   return(visu.data)
 }
 
-
 # make example data set for testing & debugging
 set.seed(42069)
-meta1.data <- modMA(k = 20, selProp = .5, qrpEnv = "high", empN.boost = .1)
+meta1.data <- modMA(k = 20, selProp = .5, qrpEnv = "high", empN.boost = 0)
 test = inspectMA(meta1.data)
 vistest = visualizeMA(meta1.data)
 View(meta1.data)
