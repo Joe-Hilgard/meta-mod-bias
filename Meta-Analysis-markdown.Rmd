@@ -6,14 +6,7 @@ output: html_document
 ---
 
 Next steps:
-- make arguments work
 
-- play with dataMA and its arguments (esp. biasing args like QPR, sel, and propB)
-   - may consult source code in SimStudies.R 
-   - make funnel plots and models until familiar with process
-- play with modMA and runStudy() 
-   - use different arguments and play wiht summarizing and graphing output
-   hint: use dplyr:summarize and ggplot2
 
 ####*Techniques for detecting and adjusting bias*
 **Ways to detect bias**
@@ -356,14 +349,13 @@ funnel(basic, level=c(90, 95, 99),
 
 *Null Model*
 ```{r}
-null.data = dataMA(k = 10, delta = 0, tau = 0, 
+null.data = dataMA(k = 100, delta = 0, tau = 0, 
                empN = 0, maxN = 200, minN = 20, meanN = 50, 
                selProp = 0, qrpEnv = "none", empN.boost = 0)
 
 null = rma(yi = d, sei = se, data = null.data)
 
 summary(null)
-funnel(null)
 funnel(null, level=c(90, 95, 99),
         shade = c("white", "grey75", "grey60"), refline=0)
 forest(null)
@@ -383,29 +375,28 @@ forest(null)
 *qrpEnv* the qrp environment that produced the literature: 'none', 'low', 'med', 'high'
 *empN.boost* A constant that is added to the empirical effect sizes
 ```{r}
-selProp.data = dataMA(k = 10, delta = 0, tau = 0, 
+selProp.data = dataMA(k = 100, delta = 0, tau = 0, 
                empN = 0, maxN = 200, minN = 20, meanN = 50, 
                selProp = .50, qrpEnv = "none", empN.boost = 0)
 selProp1 = rma(yi = d, sei = se, data = selProp.data)
 
-qrpEnv.data = dataMA(k = 10, delta = 0, tau = 0, 
+qrpEnv.data = dataMA(k = 100, delta = 0, tau = 0, 
                empN = 0, maxN = 200, minN = 20, meanN = 50, 
                selProp = 0, qrpEnv = "high", empN.boost = 0)
 qrpEnv1 = rma(yi = d, sei = se, data = qrpEnv.data)
 
-empN.boost.data = dataMA(k = 10, delta = 0, tau = 0, 
+empN.boost.data = dataMA(k = 100, delta = 0, tau = 0, 
                empN = 0, maxN = 200, minN = 20, meanN = 50, 
-               selProp = 0, qrpEnv = "none", empN.boost = .3)
+               selProp = 0, qrpEnv = "none", empN.boost = .5)
 empN.boost1 = rma(yi = d, sei = se, data = empN.boost.data)
 
-funnel(null, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0)
+
 funnel(selProp1, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0)
+        shade = c("white", "grey75", "grey60"), refline=0, main = "selProp1")
 funnel(qrpEnv1, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0)
+        shade = c("white", "grey75", "grey60"), refline=0, main = "qrpEvn1")
 funnel(empN.boost1, level=c(90, 95, 99),
-        shade = c("white", "grey75", "grey60"), refline=0)
+        shade = c("white", "grey75", "grey60"), refline=0, main = "empN.boost1")
 
 
 ```
@@ -414,24 +405,15 @@ funnel(empN.boost1, level=c(90, 95, 99),
 
 *Simulate a moderator effect (meta-regression)*
 ```{r}
-dat <- dataMA(k = 50,
-              QRP = 0,
-              sel =0,
-              sigma = 0,
-              min = 50, max = 500)
+dat <- dataMA(k = 10, delta = .2, tau = 0, 
+               empN = 0, maxN = 200, minN = 20, meanN = 50, 
+               selProp = 0, qrpEnv = "none", empN.boost = 0)
+
 dat.mod <- data.frame(dat, "mod" = runif(50))
 ma5 = rma(yi = d, sei = se, data = dat.mod,
           mods = mod)
 summary(ma5)
 plot(ma5)
 
-ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
-plot(ma6)
-funnel(ma4)
 ```
 
-*modMA*
-```{r}
-
-
-```
