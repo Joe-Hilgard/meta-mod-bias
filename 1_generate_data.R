@@ -21,6 +21,11 @@ source("hilgard_functions.R")
 
 # Maybe the most appropriate simulation settings are to use simMA with both QRPs and heavy pub bias.
 # That's probably what's going on in the real world.
+# Do I have anything like enough processing power to do that?
+
+# could also take data from meta-showdown and stitch together biased studies from various delta
+# But that would require the raw data, which is too large to fit into RAM.
+
 
 # Steps: 
 # 1. simulate studies
@@ -71,25 +76,34 @@ myFunnel(rma(yi = d, sei = se, data = testset.med, subset = id == 3))
 #       but maybe we work with the raw output objects for now
 
 # set 1 : no bias
-output.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6))
-output.nobias
+res.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6))
+res.nobias
 
 # set 2: publication bias, medium censoring
-output.med_pubbias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6), 
+res.medPB <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6), 
                                censor = "med")
-output.med_pubbias # oh boy, is convergence gonna be a thing now?
+res.medPB # oh boy, is convergence gonna be a thing now?
 
 # set 3: subtler differences
-output.smallfx.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4))
+res.smallfx.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4))
 
 # set 4: subtler differences + 70% of results are stat. sig
-output.smallfx.med_pubbias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4), 
+res.smallfx.medPB <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4), 
                                        censor = "med")
 
-# set 5: Heavier pub bias and some QRPs.
+# set 5: Heavy pub bias.
+# runs nice and quickly. It's simulating the QRPs that gets you.
+res.hiPB <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6),
+                     censor = "high")
+
+# set 6: subtler differences + heavy pub bias
+res.smallfx.hiPB <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4),
+                             censor = "high")
+
+# set 6: Heavy pub bias and some QRPs
 # oh my god this takes forever to run. Simulating 20*3*100 p-hacked studies...!
 # should probably generate all the data objects in one script and save them as .RData
-output.bias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6), 
-                        censor = "high", qrpEnv = "medium")
+# res.hiPB.medQRP <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6), 
+#                         censor = "high", qrpEnv = "medium")
 
 save.image("sim.RData")

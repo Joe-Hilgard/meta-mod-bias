@@ -224,7 +224,7 @@ plotParamMeans <- function(data1, data2, name1, name2) {
   data1$bias <- name1
   data2$bias <- name2
   # plot beta values
-  bind_rows(output.nobias, output.med_pubbias) %>% 
+  bind_rows(data1, data2) %>% 
     gather(key, value, mod.b.obs.2:mod.b.obs.3) %>% 
     ggplot(aes(x = value)) +
     geom_histogram() +
