@@ -1,0 +1,12 @@
+dataMA() calls expFinB() to generate data from biased studies.
+
+expFinB() implements the QRP strategies of none, mod, and agg
+It generates data using expFinU() if no p-hacking,
+expDataB() if there is to be p-hacking.
+expFinB controls the amount of p-hacking by implementing the 
+optional stopping loop and sending arguments to analyB().
+
+analyB() appears to be a biased analysis function.
+
+The newest implementation appears to be "simMA()" not dataMA().
+simMA does the censorfunc requested by our reviewers, so prob best to use that.
