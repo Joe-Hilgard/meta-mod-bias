@@ -8,7 +8,14 @@ library(compiler)
 library(metafor)
 
 # load study-simulating functions
-source("sim-studies.R")
+source("sim-studies/sim-studies.R", chdir=TRUE)
+source("hilgard_functions.R")
+
+# Tough choice between dataMA and simMA.
+# dataMA did the old approach of letting you force some percentage of studies to be stat sig.
+# simMA does the new approach of generating a bunch of studies, then publishing only some percentage of the nulls.
+# For simMA results to be noticeably biased or look anything like real-world data, you have to implement QRPs.
+# or really strong selection bias. And QRPs require a lot of cycles.
 
 # Steps: 
 # 1. simulate studies
@@ -37,50 +44,48 @@ source("sim-studies.R")
 
 # testing that passing of arguments is working right
 set.seed(42069)
-testset <- modMA(k = 20, d = c(0, .3, .6), 
-                 sel = 0, propB = 0, QRP = 0)
+testset <- modMA(k = 30, d = c(0, .3, .6))
 # check contrasts
 testset$id
 # make funnels for each subgroup
-funnel(rma(yi = d, sei = se, data = testset, subset = id == 1))
-funnel(rma(yi = d, sei = se, data = testset, subset = id == 2))
-funnel(rma(yi = d, sei = se, data = testset, subset = id == 3))
+myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 1))
+myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 2))
+myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 3))
 # simulate biased data
-testset.70 <- modMA(k = 20, d = c(0, .3, .6), 
-                    sel = 1, propB = .70, QRP = 0)
+testset.med <- modMA(k = 30, d = c(0, .3, .6), 
+                    censor = "med")
 # check contrasts
-testset.70$id
+testset.med$id
 # make funnels for each subgroup
-funnel(rma(yi = d, sei = se, data = testset.70, subset = id == 1))
-funnel(rma(yi = d, sei = se, data = testset.70, subset = id == 2))
-funnel(rma(yi = d, sei = se, data = testset.70, subset = id == 3))
+myFunnel(rma(yi = d, sei = se, data = testset.70, subset = id == 1))
+myFunnel(rma(yi = d, sei = se, data = testset.70, subset = id == 2))
+myFunnel(rma(yi = d, sei = se, data = testset.70, subset = id == 3))
 
 # Run simulations ----
 # TODO: It would also be smart to save the output of summarize_run to an object
 #       but maybe we work with the raw output objects for now
 
 # set 1 : no bias
-output.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6), 
-                          sel = 0, propB = 0, QRP = 0)
+output.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6))
 output.nobias
 
-# set 2: publication bias, 70+% of each subgroup stat. sig
+# set 2: publication bias, medium censoring
 output.70p_pubbias <- runStudy(nSim = 100, k = 20, d = c(0, .3, .6), 
-                               sel = 1, propB = .70, QRP = 0)
-output.70p_pubbias
+                               censor = "med")
+output.70p_pubbias # oh boy, is convergence gonna be a thing now?
 
 # set 3: subtler differences
-output.smallfx.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4), 
-                                  sel = 0, propB = 0, QRP = 0)
+output.smallfx.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4))
 
 # set 4: subtler differences + 70% of results are stat. sig
 output.smallfx.70p_pubbias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4), 
-                                       sel = 1, propB = 0.7, QRP = 0)
+                                       censor = "med")
 
 # summarize results of set 1 and set 2
 summarize_run(output.nobias) 
-# estimates: d = .00, .30, .60; power, 4.2%, 92%, 100%; egger type 1, 11%
-# PET shows strong downward bias, d = .14
+# estimates: d = .00, .30, .60; power, 5%, 100%, 100%; 
+# TODO: Get Type I error / power of Egger test
+# PET shows not-so-bad downward bias, d = .26. Wasn't it worse before?
 # check out the super poor power on the interactive model!
 
 summarize_run(output.70p_pubbias)

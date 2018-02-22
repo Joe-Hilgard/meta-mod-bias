@@ -1,45 +1,35 @@
 # This file creates four functions
-# modMA() runs dataMA() three times to create a dataset with meta-moderators
+# modMA() runs simMA() three times to create a dataset with meta-moderators
 # inspectMA() fits the various models to the output of modMA() & retrieves stats
 # runStudy() performs modMA() and inspectMA() in a loop
 # summarize_run() condenses runStudy() output into means and power rates
 
 
-# Make a function that runs dataMA three times,
+# Make a function that runs simMA three times,
 # once for each population,
 # then mixes them together
-# TODO: Note that other parameters might be worth exploring
-#       Expand argument assignment and passing
-modMA <- function(k, d, QRP, sel, propB) {
-  d1 <- dataMA(k = k, 
-               QRP = QRP, sel = sel, propB = propB, 
-               meanD = d[1], sigma = 0,
-               cbdv = .5, maxN = 200, minN = 20,
-               meanN = 50, sdN = 20,
-               multDV = 0, out = 0, mod = 0,
-               colLim = 0, add = 0, verbose = T)
-  d2 <- dataMA(k = k, 
-               QRP = QRP, sel = sel, propB = propB, 
-               meanD = d[2], sigma = 0,
-               cbdv = .5, maxN = 200, minN = 20,
-               meanN = 50, sdN = 20,
-               multDV = 0, out = 0, mod = 0,
-               colLim = 0, add = 0, verbose = T)
-  d3 <- dataMA(k = k, 
-               QRP = QRP, sel = sel, propB = propB, 
-               meanD = d[3], sigma = 0,
-               cbdv = .5, maxN = 200, minN = 20,
-               meanN = 50, sdN = 20,
-               multDV = 0, out = 0, mod = 0,
-               colLim = 0, add = 0, verbose = T)
-  # combine three subgroups into dataset, label subgroups with "id"
-  data.out <- bind_rows(d1, d2, d3, .id = "id") %>% 
-    mutate(id = factor(id))
+# TODO: consider doing something cleverer so that user can specify number of levels of "id"
+modMA <- function(k, delta, tau = 0,
+                  empN = FALSE, maxN = 200, minN = 20, meanN = 50,
+                  censor = "none", qrpEnv = "none", empN.boost = 0) {
+  d1 <- simMA(k = k, delta = delta[1], tau = 0, 
+               empN = 0, maxN = maxN, minN = minN, meanN = meanN, 
+               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d2 <- simMA(k = k, delta[2], tau = 0, 
+               empN = 0, maxN = maxN, minN = minN, meanN = meanN,  
+               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d3 <- simMA(k = k, delta[3], tau = 0, 
+               empN = 0, maxN = maxN, minN = minN, meanN = meanN, 
+               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  # bind three datasets together into one & coerce to data.frame
+  data.out <- (bind_rows(data.frame(d1), data.frame(d2), data.frame(d3), .id = "id"))
+  # convert id to a factor for meta-regression
+  data.out$id <- as.factor(data.out$id)
   # output simulated dataset
   return(data.out)
 }
 
-# function to analyze results of dataMA
+# function to analyze results of simMA
 # TODO: fetch SE of parameters for CI inspection?
 inspectMA <- function(dataset) {
   # basic model
@@ -103,13 +93,16 @@ inspectMA <- function(dataset) {
 
 # function for performing modMA() and inspectMA() nSim number of times,
 # storing the output in a data frame.
-runStudy <- function(nSim, k, d, sel, propB, QRP) {
+runStudy <- function(nSim, k, delta, tau = 0,
+                     empN = 0, maxN = 200, minN = 20, meanN = 50,
+                     censor = "none", qrpEnv = "none", empN.boost = 0) {
   output <- NULL; 
   for (i in 1:nSim) {
     # make a dataset of simulated studies
     # k studies each, effect sizes given by d
-    tempdata <- modMA(k = k, d = d, 
-                      sel = sel, propB = propB, QRP = QRP)
+    tempdata <- modMA(k, delta, tau = 0,
+                      empN = empN, maxN = maxN, minN = minN, meanN = meanN,
+                      censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
     # fit our various meta-analytic models to the simulated data
     tempresult <- inspectMA(tempdata)
     # add this iteration's results to the output object
@@ -130,7 +123,7 @@ summarize_run <- function(x) {
     summarize_at(.vars = vars(d.obs, mod.b.obs.1:mod.b.obs.3, d.obs.pet, 
                               joint.add.b1:joint.add.b3, joint.inter.b1:joint.inter.b3),
                  .funs = funs(mean)) %>% 
-    # make cell means (NOTE: ASSUMES CONTRAST CODING)
+    # make cell means (NOTE: ASSUMES DUMMY CODING)
     # Might be a simpler way... lsmeans package?
     # use transmute to drop all other columns
     transmute(d.obs,
@@ -153,4 +146,11 @@ summarize_run <- function(x) {
                  .funs = funs(mean(is_sig(.))))
   
   return(bind_cols(x.est, x.pow))
+}
+
+# convenient funnel in the style I like, centered at zero w/ significance bands
+myFunnel <- function(x) {
+  funnel(x,
+         refline=0, level=c(90, 95, 99), 
+         shade = c("white", "grey75", "grey60"), back = "gray90")
 }
