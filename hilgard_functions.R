@@ -4,23 +4,55 @@
 # runStudy() performs modMA() and inspectMA() in a loop
 # summarize_run() condenses runStudy() output into means and power rates
 
+# There are two data-generating functions
+# The default approach (used by modMA and runStudy) generates study results,
+# then publishes the nonsignificant ones with some probability set by "censor"
+# The alternative approach (used by modMA.post and runStudy.post) forces some
+# percentage of results (selProp) to be statistically significant.
+# These two approaches yield radically different degrees of publication bias.
+# IMO, to get the default approach to yield realistic levels of stat. significance
+# requires either strong pub bias or heavy p-hacking.
+
+# Remember, available levels for arguments are:
+# censor: "none", "low", "medium", "high"
+# qrpEnv: "none", "medium", "high"
+
+modMA <- function(k, delta, tau = 0,
+                  empN = FALSE, maxN = 200, minN = 20, meanN = 50,
+                  censor = "none", qrpEnv = "none", empN.boost = 0) {
+  d1 <- simMA(k = k, delta = delta[1], tau = tau, 
+               empN = empN, maxN = maxN, minN = minN, meanN = meanN, 
+               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d2 <- simMA(k = k, delta[2], tau = tau, 
+               empN = empN, maxN = maxN, minN = minN, meanN = meanN,  
+               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d3 <- simMA(k = k, delta[3], tau = tau, 
+               empN = empN, maxN = maxN, minN = minN, meanN = meanN, 
+               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  # bind three datasets together into one & coerce to data.frame
+  data.out <- (bind_rows(data.frame(d1), data.frame(d2), data.frame(d3), .id = "id"))
+  # convert id to a factor for meta-regression
+  data.out$id <- as.factor(data.out$id)
+  # output simulated dataset
+  return(data.out)
+}
 
 # Make a function that runs simMA three times,
 # once for each population,
 # then mixes them together
 # TODO: consider doing something cleverer so that user can specify number of levels of "id"
-modMA <- function(k, delta, tau = 0,
+modMA.post <- function(k, delta, tau = 0,
                   empN = FALSE, maxN = 200, minN = 20, meanN = 50,
-                  censor = "none", qrpEnv = "none", empN.boost = 0) {
-  d1 <- simMA(k = k, delta = delta[1], tau = 0, 
-               empN = 0, maxN = maxN, minN = minN, meanN = meanN, 
-               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
-  d2 <- simMA(k = k, delta[2], tau = 0, 
-               empN = 0, maxN = maxN, minN = minN, meanN = meanN,  
-               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
-  d3 <- simMA(k = k, delta[3], tau = 0, 
-               empN = 0, maxN = maxN, minN = minN, meanN = meanN, 
-               censor = censor, qrpEnv = qrpEnv, empN.boost = empN.boost)
+                  selProp = 0, qrpEnv = "none", empN.boost = 0) {
+  d1 <- dataMA(k = k, delta = delta[1], tau = tau, 
+              empN = empN, maxN = maxN, minN = minN, meanN = meanN, 
+              selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d2 <- dataMA(k = k, delta[2], tau = tau, 
+              empN = empN, maxN = maxN, minN = minN, meanN = meanN,  
+              selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
+  d3 <- dataMA(k = k, delta[3], tau = tau, 
+              empN = empN, maxN = maxN, minN = minN, meanN = meanN, 
+              selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
   # bind three datasets together into one & coerce to data.frame
   data.out <- (bind_rows(data.frame(d1), data.frame(d2), data.frame(d3), .id = "id"))
   # convert id to a factor for meta-regression
@@ -111,6 +143,26 @@ runStudy <- function(nSim, k, delta, tau = 0,
   output
 }
 
+# function for performing modMA.post() and inspectMA() nSim number of times,
+# storing the output in a data frame.
+runStudy.post <- function(nSim, k, delta, tau = 0,
+                     empN = 0, maxN = 200, minN = 20, meanN = 50,
+                     selProp = 0, qrpEnv = "none", empN.boost = 0) {
+  output <- NULL; 
+  for (i in 1:nSim) {
+    # make a dataset of simulated studies
+    # k studies each, effect sizes given by d
+    tempdata <- modMA.post(k, delta, tau = 0,
+                      empN = empN, maxN = maxN, minN = minN, meanN = meanN,
+                      selProp = selProp, qrpEnv = qrpEnv, empN.boost = empN.boost)
+    # fit our various meta-analytic models to the simulated data
+    tempresult <- inspectMA(tempdata)
+    # add this iteration's results to the output object
+    output <- bind_rows(output, tempresult)
+  }
+  output
+}
+
 # functions for summarizing a simulation series in terms of mean estimates and
 #    error rates
 # TODO: expand and refine to capture ME, RMSE, power, additive and interactive models
@@ -146,6 +198,39 @@ summarize_run <- function(x) {
                  .funs = funs(mean(is_sig(.))))
   
   return(bind_cols(x.est, x.pow))
+}
+
+# Plot observed cell means across runs
+plotCellMeans <- function(data1, data2, name1, name2) {
+  # Label facets with name arguments
+  data1$bias <- name1
+  data2$bias <- name2
+  # Generate cell means (assumes dummy coding!)
+  # and plot them
+  bind_rows(data1, data2) %>% 
+    mutate(d1.obs = mod.b.obs.1,
+           d2.obs = mod.b.obs.1 + mod.b.obs.2,
+           d3.obs = mod.b.obs.1 + mod.b.obs.3) %>% 
+    gather(key, value, d1.obs:d3.obs) %>% 
+    ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_grid(bias ~ key) +
+    scale_x_continuous(limits = c(-.2, 1))
+}
+
+# Plot moderator's observed effect size across runs
+plotParamMeans <- function(data1, data2, name1, name2) {
+  # Label facets with name arguments
+  data1$bias <- name1
+  data2$bias <- name2
+  # plot beta values
+  bind_rows(output.nobias, output.med_pubbias) %>% 
+    gather(key, value, mod.b.obs.2:mod.b.obs.3) %>% 
+    ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_grid(bias ~ key) +
+    scale_x_continuous(limits = c(0, 1))  +
+    ggtitle("Moderation between d = 0, 0.3, 0.6")
 }
 
 # convenient funnel in the style I like, centered at zero w/ significance bands
