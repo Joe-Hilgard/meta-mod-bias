@@ -57,6 +57,9 @@ set.seed(999)
 testset <- modMA(k = 30, d = c(0, .3, .6))
 # check contrasts
 testset$id
+# check summary stats of sample size
+summary(testset$N) 
+# seems a bit high for social psych. also max N is over 200? Are arguments passing correctly?
 # make funnels for each subgroup
 myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 1))
 myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 2))

@@ -59,6 +59,7 @@ plotParamMeans(res.smallfx.nobias, res.smallfx.medPB, "No Bias", "Hi Bias")
 # QRPs may change the story but I'm not sure if I've got the cycles
 # Check http://shinyapps.org/apps/metaExplorer/ to see if things look like real-life metas
 # I might say it does. Although maybe med + high QRP is more like it?
+# RE with med bias, no QRP turns delta = 0, 0.2, 0.5 to d = .15, .32, .55
 # RE with med bias, high QRP turns delta = 0, 0.2, 0.5 to d = .28, .38, .57
 # RE with hi bias, no QRP turns delta = 0, 0.2, 0.5 to d = .3, .38, .56
 # RE with hi bias hi QRP turns delta = 0, 0.2, 0.5 to d = .39, .41, .57

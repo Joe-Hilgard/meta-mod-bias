@@ -627,7 +627,9 @@ dataMA <- function(k, delta, tau,
 #' @param empN.boost A constant that is added to the empirical effect sizes: WARNING: NOT CAREFULLY TESTED YET!!
 
 # k=10;delta=.3;tau=.1;qrpEnv="med";censorFunc="A"; empN=TRUE; maxN = 1000; meanN = NA; minN = 0; empN.boost = 0
-simMA <- function(k, delta, tau, qrpEnv= c("none", "low", "medium", "high"), censorFunc = c("none", "medium", "high"), empN = TRUE, maxN = 1000, meanN = NA, minN = 0, empN.boost = 0, verbose=FALSE) {  
+simMA <- function(k, delta, tau, 
+                  qrpEnv= c("none", "low", "medium", "high"), censorFunc = c("none", "medium", "high"), 
+                  empN = TRUE, maxN = 1000, meanN = NA, minN = 0, empN.boost = 0, verbose=FALSE) {  
     
 	# validate parameters
 	if (length(censorFunc) == 1) {
