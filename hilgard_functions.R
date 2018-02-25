@@ -71,12 +71,15 @@ inspectMA <- function(dataset) {
                          mods = ~id, data = dataset)
   # test for small-study effect
   egger.PET.test <- rma(yi = d, sei = se,
-                        mods = ~se, data = dataset)
+                        mods = ~se, data = dataset,
+                        control = list(stepadj = .5))
   # test for moderator after adjustment for small-study
   joint.test.additive <- rma(yi = d, sei = se,
-                             mods = ~id + se, data = dataset)
+                             mods = ~id + se, data = dataset,
+                             control = list(stepadj = .5))
   joint.test.interactive <- rma(yi = d, sei = se,
-                                mods = ~id * se, data = dataset)
+                                mods = ~id * se, data = dataset,
+                                control = list(stepadj = .5))
   # not sure how to interpret these parameters in the interactive model
   # test for moderator in hedges & vevea weight model
   # return test results
