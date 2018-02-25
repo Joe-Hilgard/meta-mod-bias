@@ -63,6 +63,15 @@ modMA.post <- function(k, delta, tau = 0,
 
 # function to analyze results of simMA
 # TODO: fetch SE of parameters for CI inspection?
+# TODO: Do I need to figure something nicer out using map(), safely(), possibly()?
+# In meta-showdown, it looks like Felix ran them as lists
+#    see https://github.com/nicebread/meta-showdown/blob/master/2-analysisFramework.R#L50
+# use of tryCatch: https://github.com/nicebread/meta-showdown/blob/master/MA-methods/2-p-curve.R#L19
+# use of tryCatch to flip from "REML" to "DL" when necessary in PET/PEESE:
+#    see https://github.com/nicebread/meta-showdown/blob/master/MA-methods/3-PET-PEESE.R#L13
+# use of tryCatch to make failed weightfunct output into NULL / NA:
+#    see https://github.com/nicebread/meta-showdown/blob/master/MA-methods/7-Selection%20Models.R#L12
+
 inspectMA <- function(dataset) {
   # basic model
   rmamod <- rma(yi = d, sei = se, data = dataset)
