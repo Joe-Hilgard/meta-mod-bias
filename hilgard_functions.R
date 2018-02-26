@@ -92,45 +92,54 @@ inspectMA <- function(dataset) {
   # not sure how to interpret these parameters in the interactive model
   # test for moderator in hedges & vevea weight model
   # return test results
-  out = data.frame(d.obs = summary(rmamod)$b[1],
-                   se.obs = summary(rmamod)$se[1],
-                   d.p = summary(rmamod)$pval[1],
+  res.basic <- summary(rmamod)
+  res.mod <- summary(moderation.test)
+  res.pet <- summary(egger.PET.test)
+  res.add <- summary(joint.test.additive)
+  res.int <- summary(joint.test.interactive)
+  
+  # Collate results into data frame
+  # Maybe the tryCatch way to do this would be to just tidy() all results
+  #    bind them, gather them, then filter and spread them.
+  out = data.frame(d.obs = res.basic$b[1],
+                   se.obs = res.basic$se[1],
+                   d.p = res.basic$pval[1],
                    # Moderators
                    # Note that .1 is the intercept, reference group
-                   mod.b.obs.1 = summary(moderation.test)$b[1],
-                   mod.b.obs.2 = summary(moderation.test)$b[2],
-                   mod.b.obs.3 = summary(moderation.test)$b[3],
-                   mod.p.1 = summary(moderation.test)$pval[1],
-                   mod.p.2 = summary(moderation.test)$pval[2],
-                   mod.p.3 = summary(moderation.test)$pval[3],
+                   mod.b.obs.1 = res.mod$b[1],
+                   mod.b.obs.2 = res.mod$b[2],
+                   mod.b.obs.3 = res.mod$b[3],
+                   mod.p.1 = res.mod$pval[1],
+                   mod.p.2 = res.mod$pval[2],
+                   mod.p.3 = res.mod$pval[3],
                    # Egger / PET
-                   d.obs.pet = summary(egger.PET.test)$b[1],
-                   p.pet = summary(egger.PET.test)$pval[1],
-                   b.egger = summary(egger.PET.test)$b[2],
-                   p.egger = summary(egger.PET.test)$pval[2],
+                   d.obs.pet = res.pet$b[1],
+                   p.pet = res.pet$pval[1],
+                   b.egger = res.pet$b[2],
+                   p.egger = res.pet$pval[2],
                    # joint PET-RMA tests
                    #Additive model 
-                   joint.add.b1 = summary(joint.test.additive)$b[1],
-                   joint.add.b2 = summary(joint.test.additive)$b[2],
-                   joint.add.b3 = summary(joint.test.additive)$b[3],
-                   joint.add.b.egger = summary(joint.test.additive)$b[4],
-                   joint.add.p1 = summary(joint.test.additive)$pval[1],
-                   joint.add.p2 = summary(joint.test.additive)$pval[2],
-                   joint.add.p3 = summary(joint.test.additive)$pval[3],
-                   joint.add.p.egger = summary(joint.test.additive)$pval[4],
+                   joint.add.b1 = res.add$b[1],
+                   joint.add.b2 = res.add$b[2],
+                   joint.add.b3 = res.add$b[3],
+                   joint.add.b.egger = res.add$b[4],
+                   joint.add.p1 = res.add$pval[1],
+                   joint.add.p2 = res.add$pval[2],
+                   joint.add.p3 = res.add$pval[3],
+                   joint.add.p.egger = res.add$pval[4],
                    #Interactive model
-                   joint.inter.b1 = summary(joint.test.interactive)$b[1],
-                   joint.inter.b2 = summary(joint.test.interactive)$b[2],
-                   joint.inter.b3 = summary(joint.test.interactive)$b[3],
-                   joint.inter.b1.egger = summary(joint.test.interactive)$b[4],
-                   joint.inter.b2.egger = summary(joint.test.interactive)$b[5],
-                   joint.inter.b3.egger = summary(joint.test.interactive)$b[6],
-                   joint.inter.p1 = summary(joint.test.interactive)$pval[1],
-                   joint.inter.p2 = summary(joint.test.interactive)$pval[2],
-                   joint.inter.p3 = summary(joint.test.interactive)$pval[3],
-                   joint.inter.p1.egger = summary(joint.test.interactive)$pval[4],
-                   joint.inter.p2.egger = summary(joint.test.interactive)$pval[5],
-                   joint.inter.p3.egger = summary(joint.test.interactive)$pval[6]
+                   joint.inter.b1 = res.int$b[1],
+                   joint.inter.b2 = res.int$b[2],
+                   joint.inter.b3 = res.int$b[3],
+                   joint.inter.b1.egger = res.int$b[4],
+                   joint.inter.b2.egger = res.int$b[5],
+                   joint.inter.b3.egger = res.int$b[6],
+                   joint.inter.p1 = res.int$pval[1],
+                   joint.inter.p2 = res.int$pval[2],
+                   joint.inter.p3 = res.int$pval[3],
+                   joint.inter.p1.egger = res.int$pval[4],
+                   joint.inter.p2.egger = res.int$pval[5],
+                   joint.inter.p3.egger = res.int$pval[6]
   )
   return(data.frame(out))
 }

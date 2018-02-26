@@ -29,8 +29,8 @@ summarize_run(res.medPB)
 
 summarize_run(res.smallfx.nobias) 
 # observed d = 0, .2, .4; power = 9%, 87%, 100%; egger type 1 ??%
-summarize_run(res.smallfx.medPB) # dramatically reduced power
-# observed d = .14, .33, .47; power = 100%, 2.2%, 35%; egger power 74%
+summarize_run(res.smallfx.medPB) # 
+# observed d = .14, .33, .47; Type I = 83%; power = 89%, 100%; 2.2%, 35%; egger power ?%
 
 plotCellMeans(res.nobias, res.medPB, "No Bias", "Med Bias")
 plotParamMeans(res.nobias, res.medPB, "No Bias", "Med Bias")
@@ -65,6 +65,12 @@ plotParamMeans(res.smallfx.nobias, res.smallfx.medPB, "No Bias", "Hi Bias")
 # RE with hi bias hi QRP turns delta = 0, 0.2, 0.5 to d = .39, .41, .57
 # It doesn't seem to matter a whole lot for the naive estimator. but QRP will mess up PET.
 
+summarize_run(res.hiPB)
+summarize_run(res.smallfx.hiPB)
+summarize_run(res.medPB.hiQRP)
+summarize_run(res.smallfx.nobias)
+summarize_run(res.smallfx.medPB.hiQRP)
+summarize_run(res.smallfx.hiPB)
 
 # Next steps:
 # increase nSim
@@ -73,5 +79,46 @@ plotParamMeans(res.smallfx.nobias, res.smallfx.medPB, "No Bias", "Hi Bias")
 # check distribution of N -- is it appropriate?
 hist(meta1$N)
 # implement PET-RMA model
+delta <- c(0, .3, .6)
+mySummary <- function(x) {
+  x %>% 
+    summarize(
+      # Mean error
+      me.b1 = mean(mod.b.obs.1 - delta[1]),
+      me.b2 = mean(mod.b.obs.2 - delta[2]),
+      me.b3 = mean(mod.b.obs.3 - delta[3]),
+      me.b1.add = mean(joint.add.b1 - delta[1]),
+      me.b2.add = mean(joint.add.b2 - delta[2]),
+      me.b3.add = mean(joint.add.b3 - delta[3]),
+      me.b1.inter = mean(joint.inter.b1 - delta[1]),
+      me.b2.inter = mean(joint.inter.b2 - delta[2]),
+      me.b3.inter = mean(joint.inter.b3 - delta[3]),
+      # RMSE        
+      rmse.b1 = sqrt(mean((mod.b.obs.1 - delta[1])^2)),
+      rmse.b2 = sqrt(mean((mod.b.obs.2 - delta[2])^2)),
+      rmse.b3 = sqrt(mean((mod.b.obs.3 - delta[3])^2)),
+      rmse.b1.add = sqrt(mean((joint.add.b1 - delta[1])^2)),
+      rmse.b2.add = sqrt(mean((joint.add.b2 - delta[2])^2)),
+      rmse.b3.add = sqrt(mean((joint.add.b3 - delta[3])^2)),
+      rmse.b1.inter = sqrt(mean((joint.inter.b1 - delta[1])^2)),
+      rmse.b2.inter = sqrt(mean((joint.inter.b2 - delta[2])^2)),
+      rmse.b3.inter = sqrt(mean((joint.inter.b3 - delta[3])^2)),          
+      # Power / Type I  
+      pow.b1 = mean(mod.p.1 < .05),
+      pow.b2 = mean(mod.p.2 < .05),
+      pow.b3 = mean(mod.p.3 < .05),
+      pow.b1.add = mean(joint.add.p1 < .05),
+      pow.b2.add = mean(joint.add.p2 < .05),
+      pow.b3.add = mean(joint.add.p3 < .05),
+      pow.b1.inter = mean(joint.inter.p1 < .05),
+      pow.b2.inter = mean(joint.inter.p2 < .05),
+      pow.b3.inter = mean(joint.inter.p3 < .05)
+    )
+}
 
-
+final <- bind_rows(medFX_noBias = mySummary(res.nobias),
+          medFX_medPBhiQRP = mySummary(res.medPB.hiQRP),
+          smallFX_noBias = mySummary(res.smallfx.nobias),
+          smallFX_medPBhiQRP = mySummary(res.smallfx.medPB.hiQRP),
+          .id = "id")
+write.csv(final, "final_output.csv", row.names = F)

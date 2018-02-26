@@ -97,6 +97,7 @@ res.smallfx.medPB <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4),
 
 # set 5: Heavy pub bias.
 # runs nice and quickly. It's simulating the QRPs that gets you.
+# having surprising convergence issues with plain PET
 res.hiPB <- runStudy(nSim = 1000, k = 20, d = c(0, .3, .6),
                      censor = "high")
 
