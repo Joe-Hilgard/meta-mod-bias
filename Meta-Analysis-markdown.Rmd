@@ -129,16 +129,15 @@ inspectMA <- function(dataset) {
 
 visualizeMA <- function(dataset){
   visu.data = plot(dataset)
-  #output
-  return(visu.data)
-}
+  return(visu.data)}
 
 # make example data set for testing & debugging
 set.seed(42069)
 meta1.data <- modMA(k = 20, selProp = .5, qrpEnv = "high", empN.boost = 0)
 test = inspectMA(meta1.data)
-vistest = visualizeMA(meta1.data)
-View(meta1.data)
+visualizeMA(meta1.data$d)
+View(test)
+summary(test)
 
 #work space below:
 
