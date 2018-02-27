@@ -106,12 +106,12 @@ inspectMA <- function(dataset) {
                    d.p = res.basic$pval[1],
                    # Moderators
                    # Note that .1 is the intercept, reference group
-                   mod.b.obs.1 = res.mod$b[1],
-                   mod.b.obs.2 = res.mod$b[2],
-                   mod.b.obs.3 = res.mod$b[3],
-                   mod.p.1 = res.mod$pval[1],
-                   mod.p.2 = res.mod$pval[2],
-                   mod.p.3 = res.mod$pval[3],
+                   mod.obs.b1 = res.mod$b[1],
+                   mod.obs.b2 = res.mod$b[2],
+                   mod.obs.b3 = res.mod$b[3],
+                   mod.p1 = res.mod$pval[1],
+                   mod.p2 = res.mod$pval[2],
+                   mod.p3 = res.mod$pval[3],
                    # Egger / PET
                    d.obs.pet = res.pet$b[1],
                    p.pet = res.pet$pval[1],
@@ -193,7 +193,7 @@ is_sig <- function(x) x < .05
 summarize_run <- function(x) {
   # Get estimates of d, moderator parameters, bias parameter, bias-adjusted PET
   x.est <- x %>% 
-    summarize_at(.vars = vars(d.obs, mod.b.obs.1:mod.b.obs.3, d.obs.pet, 
+    summarize_at(.vars = vars(d.obs, mod.obs.b1:mod.obs.b3, d.obs.pet, 
                               joint.add.b1:joint.add.b3, joint.inter.b1:joint.inter.b3),
                  .funs = funs(mean)) %>% 
     # make cell means (NOTE: ASSUMES DUMMY CODING)
@@ -201,9 +201,9 @@ summarize_run <- function(x) {
     # use transmute to drop all other columns
     transmute(d.obs,
               d.obs.pet,
-              d1.obs = mod.b.obs.1,
-              d2.obs = mod.b.obs.1 + mod.b.obs.2,
-              d3.obs = mod.b.obs.1 + mod.b.obs.3, 
+              d1.obs = mod.obs.b1,
+              d2.obs = mod.obs.b1 + mod.obs.b2,
+              d3.obs = mod.obs.b1 + mod.obs.b3, 
               joint.add.d1.obs = joint.add.b1,
               joint.add.d2.obs = joint.add.b1 + joint.add.b2,
               joint.add.d3.obs = joint.add.b1 + joint.add.b3,
@@ -229,9 +229,9 @@ plotCellMeans <- function(data1, data2, name1, name2) {
   # Generate cell means (assumes dummy coding!)
   # and plot them
   bind_rows(data1, data2) %>% 
-    mutate(d1.obs = mod.b.obs.1,
-           d2.obs = mod.b.obs.1 + mod.b.obs.2,
-           d3.obs = mod.b.obs.1 + mod.b.obs.3) %>% 
+    mutate(d1.obs = mod.obs.b1,
+           d2.obs = mod.obs.b1 + mod.obs.b2,
+           d3.obs = mod.obs.b1 + mod.obs.b3) %>% 
     gather(key, value, d1.obs:d3.obs) %>% 
     ggplot(aes(x = value)) +
     geom_histogram() +
@@ -246,7 +246,7 @@ plotParamMeans <- function(data1, data2, name1, name2) {
   data2$bias <- name2
   # plot beta values
   bind_rows(data1, data2) %>% 
-    gather(key, value, mod.b.obs.2:mod.b.obs.3) %>% 
+    gather(key, value, mod.obs.b2:mod.obs.b3) %>% 
     ggplot(aes(x = value)) +
     geom_histogram() +
     facet_grid(bias ~ key) +

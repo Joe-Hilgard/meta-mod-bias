@@ -2,7 +2,9 @@
 title: "Meta-Analysis"
 author: "Olivia Cody"
 date: "1/30/2018"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Next steps:
@@ -189,18 +191,6 @@ summary(test)
 
 ####* r Package code*
 ```{r}
-#Additional libraries:
-library("devtools")
-library("roxygen2")
-#See: https://hilaryparker.com/2014/04/29/writing-an-r-package-from-scratch/
-
-
-#Step 1: Create your package directory
-
-work_dir = "/Users/Olivia/Documents/GitHub/meta-mod-bias"
-setwd(work_dir)
-create("meta.bias")
-
 #If you look in your parent directory, in it you will have two folders and one file called DESCRIPTION. Need to edit the DESCRIPTION file to include all of your contact information, etc.
 
 
@@ -231,7 +221,6 @@ create("meta.bias")
 #' @param add number to add to each group when collecting more data
 #' @param verbose Should informations be printed?
 #' dataMA()
-dataMA = source("sim-studies.R")
 
 
 #' A Meta-analysis Function
@@ -305,22 +294,16 @@ inspectMA <- function(dataset) {
 #Step 4: Process your documentation
 #Now you need to create the documentation from your annotations earlier. You’ve already done the “hard” work in Step 3. Step 4 is as easy doing this:
 
-setwd("./cats")
-document()
 #This automatically adds in the .Rd files to the man directory, and adds a NAMESPACE file to the main directory. You can read up more about these, but in terms of steps you need to take, you really don’t have to do anything further.
 
 
 #Step 5: Install!
 #Now it is as simple as installing the package! You need to run this from the parent working directory that contains the cats folder.
-
-setwd("..")
-install("cats")
+ 
 #Now you have a real, live, functioning R package. For example, try typing ?cat_function. You should see the standard help page pop up!
 
 #Step 6: Make the package a GitHub repo
 # to putting your package onto GitHub is that you can use the devtools install_github() function to install your new package directly from the GitHub page.
-
-install_github('cats','github_username')
 
 ```
 

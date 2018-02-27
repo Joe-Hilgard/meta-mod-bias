@@ -115,4 +115,39 @@ res.medPB.hiQRP <- runStudy(nSim = 1000, k = 20, d = c(0, .3, .6),
 res.smallfx.medPB.hiQRP <- runStudy(nSim = 1000, k = 20, d = c(0, .2, .4), 
                                     censor = "medium", qrpEnv = "high")
 
+# One-time kludge for fixing column names
+# res.medPB.hiQRP <- res.medPB.hiQRP %>% 
+#   rename(mod.obs.b1 = mod.b.obs.1,
+#          mod.obs.b2 = mod.b.obs.2,
+#          mod.obs.b3 = mod.b.obs.3,
+#          mod.p1 = mod.p.1,
+#          mod.p2 = mod.p.2,
+#          mod.p3 = mod.p.3)
+# 
+# res.nobias <- res.nobias %>% 
+#   rename(mod.obs.b1 = mod.b.obs.1,
+#          mod.obs.b2 = mod.b.obs.2,
+#          mod.obs.b3 = mod.b.obs.3,
+#          mod.p1 = mod.p.1,
+#          mod.p2 = mod.p.2,
+#          mod.p3 = mod.p.3)
+# 
+# res.smallfx.nobias <- res.smallfx.nobias %>% 
+#   rename(mod.obs.b1 = mod.b.obs.1,
+#          mod.obs.b2 = mod.b.obs.2,
+#          mod.obs.b3 = mod.b.obs.3,
+#          mod.p1 = mod.p.1,
+#          mod.p2 = mod.p.2,
+#          mod.p3 = mod.p.3)
+# 
+# res.smallfx.medPB.hiQRP <- res.smallfx.medPB.hiQRP %>% 
+#   rename(mod.obs.b1 = mod.b.obs.1,
+#          mod.obs.b2 = mod.b.obs.2,
+#          mod.obs.b3 = mod.b.obs.3,
+#          mod.p1 = mod.p.1,
+#          mod.p2 = mod.p.2,
+#          mod.p3 = mod.p.3)
+
 save.image("sim.RData")
+
+

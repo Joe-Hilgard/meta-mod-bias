@@ -84,9 +84,9 @@ mySummary <- function(x) {
   x %>% 
     summarize(
       # Mean error
-      me.b1 = mean(mod.b.obs.1 - delta[1]),
-      me.b2 = mean(mod.b.obs.2 - delta[2]),
-      me.b3 = mean(mod.b.obs.3 - delta[3]),
+      me.b1 = mean(mod.obs.b1 - delta[1]),
+      me.b2 = mean(mod.obs.b2 - delta[2]),
+      me.b3 = mean(mod.obs.b3 - delta[3]),
       me.b1.add = mean(joint.add.b1 - delta[1]),
       me.b2.add = mean(joint.add.b2 - delta[2]),
       me.b3.add = mean(joint.add.b3 - delta[3]),
@@ -94,9 +94,9 @@ mySummary <- function(x) {
       me.b2.inter = mean(joint.inter.b2 - delta[2]),
       me.b3.inter = mean(joint.inter.b3 - delta[3]),
       # RMSE        
-      rmse.b1 = sqrt(mean((mod.b.obs.1 - delta[1])^2)),
-      rmse.b2 = sqrt(mean((mod.b.obs.2 - delta[2])^2)),
-      rmse.b3 = sqrt(mean((mod.b.obs.3 - delta[3])^2)),
+      rmse.b1 = sqrt(mean((mod.obs.b1 - delta[1])^2)),
+      rmse.b2 = sqrt(mean((mod.obs.b2 - delta[2])^2)),
+      rmse.b3 = sqrt(mean((mod.obs.b3 - delta[3])^2)),
       rmse.b1.add = sqrt(mean((joint.add.b1 - delta[1])^2)),
       rmse.b2.add = sqrt(mean((joint.add.b2 - delta[2])^2)),
       rmse.b3.add = sqrt(mean((joint.add.b3 - delta[3])^2)),
@@ -104,9 +104,9 @@ mySummary <- function(x) {
       rmse.b2.inter = sqrt(mean((joint.inter.b2 - delta[2])^2)),
       rmse.b3.inter = sqrt(mean((joint.inter.b3 - delta[3])^2)),          
       # Power / Type I  
-      pow.b1 = mean(mod.p.1 < .05),
-      pow.b2 = mean(mod.p.2 < .05),
-      pow.b3 = mean(mod.p.3 < .05),
+      pow.b1 = mean(mod.p1 < .05),
+      pow.b2 = mean(mod.p2 < .05),
+      pow.b3 = mean(mod.p3 < .05),
       pow.b1.add = mean(joint.add.p1 < .05),
       pow.b2.add = mean(joint.add.p2 < .05),
       pow.b3.add = mean(joint.add.p3 < .05),
@@ -122,3 +122,22 @@ final <- bind_rows(medFX_noBias = mySummary(res.nobias),
           smallFX_medPBhiQRP = mySummary(res.smallfx.medPB.hiQRP),
           .id = "id")
 write.csv(final, "final_output.csv", row.names = F)
+
+
+names(res.medPB.hiQRP)
+
+temp <- res.medPB.hiQRP %>% 
+  select(mod.obs.b1:mod.obs.b3, 
+         joint.add.b1:joint.add.b3, 
+         joint.inter.b1:joint.inter.b3) %>% 
+  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.")
+
+temp %>% 
+  group_by(estimator, coefficient) %>% 
+  summarize(m = mean(value),
+            q.lower = quantile(value, .025),
+            q.upper = quantile(value, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator,
+             ymin = q.lower, ymax = q.upper)) +
+  geom_pointrange(size = 3, position = position_dodge(width = .5))
