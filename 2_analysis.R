@@ -8,6 +8,7 @@ library(truncdist)
 library(pwr)
 library(compiler)
 library(metafor)
+library(forcats)
 source("sim-studies/sim-studies.R", chdir=TRUE)
 source("hilgard_functions.R")
 
@@ -124,20 +125,171 @@ final <- bind_rows(medFX_noBias = mySummary(res.nobias),
 write.csv(final, "final_output.csv", row.names = F)
 
 
-names(res.medPB.hiQRP)
+# Plotting for poster ----
+theme_poster <- theme(text = element_text(size = 32),
+                      legend.position = "none")
 
-temp <- res.medPB.hiQRP %>% 
-  select(mod.obs.b1:mod.obs.b3, 
+temp <- bind_rows(noBias = res.nobias, 
+                  bias = res.medPB.hiQRP, 
+                  .id = "id") %>% 
+  select(id,
+         mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
          joint.inter.b1:joint.inter.b3) %>% 
   gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.")
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  # augment with true values & fix factor order
+  mutate(delta = ifelse(coefficient == "b1", 0,
+                        ifelse(coefficient == "b2", 0.3, 0.6)),
+         rmse = sqrt((value - delta)^2),
+         id = fct_relevel(id, c("noBias", "bias")),
+         estimator = fct_relevel(estimator, c("obs", "add", "inter")))
 
+temp2 <- bind_rows(noBias = res.smallfx.nobias, 
+                  bias = res.smallfx.medPB.hiQRP, 
+                  .id = "id") %>% 
+  select(id,
+         mod.obs.b1:mod.obs.b3, 
+         joint.add.b1:joint.add.b3, 
+         joint.inter.b1:joint.inter.b3) %>% 
+  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  # augment with true values
+  mutate(delta = ifelse(coefficient == "b1", 0,
+                        ifelse(coefficient == "b2", 0.2, 0.4)),
+         rmse = sqrt((value - delta)^2),
+         id = fct_relevel(id, c("noBias", "bias")),
+         estimator = fct_relevel(estimator, c("obs", "add", "inter")))
+
+# plot means
 temp %>% 
-  group_by(estimator, coefficient) %>% 
+  group_by(id, estimator, coefficient, delta) %>% 
   summarize(m = mean(value),
             q.lower = quantile(value, .025),
             q.upper = quantile(value, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator)) +
+  geom_hline(aes(yintercept = delta), col = 'grey25') +
+  geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
+                  size = 2, position = position_dodge(width = .5)) +
+  facet_grid(~id) +
+  scale_y_continuous("Estimate (d)",
+                     breaks = c(-0.3, 0, 0.3, 0.6, 0.9)) +
+  theme_poster
+ggsave("me_bigfx.png", width = 10.25, height = 4)
+
+temp2 %>% 
+  group_by(id, estimator, coefficient, delta) %>% 
+  summarize(m = mean(value),
+            q.lower = quantile(value, .025),
+            q.upper = quantile(value, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator)) +
+  geom_hline(aes(yintercept = delta), col = 'grey25') +
+  geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
+                  size = 2, position = position_dodge(width = .5)) +
+  facet_grid(~id) +
+  scale_y_continuous("Estimate (d)",
+                     breaks = c(-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8)) +
+  theme_poster
+ggsave("me_smfx.png", width = 10.25, height = 4)
+
+
+# plot RMSE
+temp %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(m = mean(rmse),
+            q.lower = quantile(rmse, .025),
+            q.upper = quantile(rmse, .975)) %>% 
   ggplot(aes(x = coefficient, y = m, shape = estimator,
              ymin = q.lower, ymax = q.upper)) +
-  geom_pointrange(size = 3, position = position_dodge(width = .5))
+  geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+  facet_wrap(~id) +
+  scale_y_continuous("RMSE") +
+  theme_poster
+ggsave("rmse_bigfx.png", width = 10.25, height = 4)
+
+temp2 %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(m = mean(rmse),
+            q.lower = quantile(rmse, .025),
+            q.upper = quantile(rmse, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator,
+             ymin = q.lower, ymax = q.upper)) +
+  geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+  facet_wrap(~id) +
+  scale_y_continuous("RMSE") +
+  theme_poster
+ggsave("rmse_smfx.png", width = 10.25, height = 4)
+
+# Power / Type I
+temp.p <- bind_rows(noBias = res.nobias, 
+                    bias = res.medPB.hiQRP, 
+                    .id = "id") %>% 
+  select(id,
+         mod.p1:mod.p3, 
+         joint.add.p1:joint.add.p3, 
+         joint.inter.p1:joint.inter.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
+           fill = "left") %>% 
+  mutate(id = fct_relevel(id, "noBias", "bias"),
+         estimator = fct_relevel(estimator, c("mod", "add", "inter")))
+
+temp.p2 <- bind_rows(noBias = res.smallfx.nobias, 
+                    bias = res.smallfx.medPB.hiQRP, 
+                    .id = "id") %>% 
+  select(id,
+         mod.p1:mod.p3, 
+         joint.add.p1:joint.add.p3, 
+         joint.inter.p1:joint.inter.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
+           fill = "left") %>% 
+  mutate(id = fct_relevel(id, "noBias", "bias"),
+         estimator = fct_relevel(estimator, c("mod", "add", "inter")))
+
+temp.p %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(sig = mean(value < .05)) %>% 
+  ggplot(aes(x = coefficient, y = sig, 
+             shape = interaction(estimator, id),
+             group = estimator)) +
+  geom_point(size = 5, position = position_dodge(width = .5)) +
+  scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
+  theme_poster
+ggsave("nhst_bigfx.png", width = 6, height = 4)
+
+temp.p2 %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(sig = mean(value < .05)) %>% 
+  ggplot(aes(x = coefficient, y = sig, 
+             shape = interaction(estimator, id),
+             group = estimator)) +
+  geom_point(size = 5, position = position_dodge(width = .5)) +
+  scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
+  theme_poster
+ggsave("nhst_smfx.png", width = 6, height = 4)
+
+# temp.p2 %>% 
+#   group_by(id, estimator, coefficient) %>% 
+#   summarize(sig = mean(value < .05)) %>% 
+#   ggplot(aes(x = coefficient, y = sig, shape = estimator)) +
+#   geom_point(size = 3, position = position_dodge(width = .5)) +
+#   facet_wrap(~id)
+
+
+
+
+
+# approach 2: scatterpoints
+# Looks too muddy
+# temp %>% 
+#   group_by(id, estimator, coefficient, delta) %>% 
+#   ggplot(aes(x = coefficient, y = value, shape = estimator)) +
+#   geom_boxplot(position = position_dodge(width = .5)) +
+#   geom_jitter(alpha = .5,
+#               position = position_jitterdodge(dodge.width = .5, jitter.width = .25)) +
+#   facet_grid(~id) +
+#   geom_point(aes(y = delta), col = 'darkred', size = 2) +
+#   scale_y_continuous(breaks = c(-0.3, 0, 0.3, 0.6, 0.9))

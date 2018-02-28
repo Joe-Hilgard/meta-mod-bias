@@ -53,6 +53,13 @@ censorMedium <- function(pObs, direction) {
 	censor(pObs, direction, posSign_NS_baseRate = 0.20, negSign_NS_baseRate = 0.05, counterSig_rate = 0.50)
 }
 
+phist <- data.frame(p = seq(0, 1, .01))
+phist$prob <- NA
+for (i in 1:nrow(phist)) {
+  phist$prob[i] = censorMedium(phist$p[i], 1)
+}
+
+
 # some predefined settings: strong publication bias
 censorHigh <- function(pObs, direction) {
 	censor(pObs, direction, posSign_NS_baseRate = 0.05, negSign_NS_baseRate = 0.00, counterSig_rate = 0.20)
