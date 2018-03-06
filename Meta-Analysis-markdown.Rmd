@@ -8,6 +8,12 @@ output:
 ---
 
 Next steps:
+Plot:
+- RMSE
+Parameters would be:
+- B1, b2, b3
+   - Ggplot: x= b1, b2, b3; y = obs value; jitter; shape = est (naïve, additive PET, interactive pet; error bar = quantile 
+
 
 
 ####*Techniques for detecting and adjusting bias*
@@ -48,6 +54,7 @@ source("sim-studies/sim-studies.R", chdir=TRUE)
 *selProp* the proportion of the sample affected by bias
 *qrpEnv* the qrp environment that produced the literature: 'none', 'low', 'med', 'high'
 *empN.boost* A constant that is added to the empirical effect sizes
+
 ####*Code that does it all in one*
 ```{r}
 
@@ -127,19 +134,108 @@ inspectMA <- function(dataset) {
   return(data.frame(out))
   }
 
+# example data set for testing & debugging
+#final_output.cvs?
+
 # function to make various visuals of MA: (?)
 
 visualizeMA <- function(dataset){
   visu.data = plot(dataset)
   return(visu.data)}
 
-# make example data set for testing & debugging
-set.seed(42069)
-meta1.data <- modMA(k = 20, selProp = .5, qrpEnv = "high", empN.boost = 0)
-test = inspectMA(meta1.data)
-visualizeMA(meta1.data$d)
-View(test)
-summary(test)
+#________________________________________________________________________________
+is_sig <- function(x) x < .05
+
+summarize_run <- function(x) {
+  # Get estimates of d, moderator parameters, bias parameter, bias-adjusted PET
+  x.est <- x %>% 
+    summarize_at(.vars = vars(d.obs, mod.obs.b1:mod.obs.b3, d.obs.pet, 
+                              joint.add.b1:joint.add.b3, joint.inter.b1:joint.inter.b3),
+                 .funs = funs(mean)) %>% 
+    # make cell means (NOTE: ASSUMES DUMMY CODING)
+    # Might be a simpler way... lsmeans package?
+    # use transmute to drop all other columns
+    transmute(d.obs,
+              d.obs.pet,
+              d1.obs = mod.obs.b1,
+              d2.obs = mod.obs.b1 + mod.obs.b2,
+              d3.obs = mod.obs.b1 + mod.obs.b3, 
+              joint.add.d1.obs = joint.add.b1,
+              joint.add.d2.obs = joint.add.b1 + joint.add.b2,
+              joint.add.d3.obs = joint.add.b1 + joint.add.b3,
+              joint.inter.d1.obs = joint.inter.b1,
+              joint.inter.d2.obs = joint.inter.b1 + joint.inter.b2,
+              joint.inter.d3.obs = joint.inter.b1 + joint.inter.b3)
+
+  # Get power (or Type I) rates for each p-value test
+  x.pow <- x %>% 
+    summarize_at(.vars = vars(d.p, mod.p.1:mod.p.3, 
+                              joint.add.p1:joint.add.p3,
+                              joint.inter.p1:joint.inter.p3),
+                 .funs = funs(mean(is_sig(.))))
+  
+  return(bind_cols(x.est, x.pow))
+}
+
+# Plot observed cell means across runs
+plotCellMeans <- function(data1, data2, name1, name2) {
+  # Label facets with name arguments
+  data1$bias <- name1
+  data2$bias <- name2
+  # Generate cell means (assumes dummy coding!)
+  # and plot them
+  bind_rows(data1, data2) %>% 
+    mutate(d1.obs = mod.obs.b1,
+           d2.obs = mod.obs.b1 + mod.obs.b2,
+           d3.obs = mod.obs.b1 + mod.obs.b3) %>% 
+    gather(key, value, d1.obs:d3.obs) %>% 
+    ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_grid(bias ~ key) +
+    scale_x_continuous(limits = c(-.2, 1))
+}
+
+# Plot moderator's observed effect size across runs
+plotParamMeans <- function(data1, data2, name1, name2) {
+  # Label facets with name arguments
+  data1$bias <- name1
+  data2$bias <- name2
+  # plot beta values
+  bind_rows(data1, data2) %>% 
+    gather(key, value, mod.obs.b2:mod.obs.b3) %>% 
+    ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_grid(bias ~ key) +
+    scale_x_continuous(limits = c(0, 1))  +
+    ggtitle("Moderation between d = 0, 0.3, 0.6")
+}
+
+# Function for Mean Error
+ME = function(dataset, m){
+  obs = dataset$d.obs
+  mean(m - obs) %>% 
+  ggplot(aes())
+}
+
+# Function for Root Mean Squared Error
+RMSE = function(m, o){
+  sqrt(mean((m - o)^2))
+  #Label names
+  #m = Model_values
+  #o = Observed_values
+  #plot RMSE
+  bind_rows(m, o) %>%
+    gather(key, value, mod.obs.b2:mod.obs.b3) %>% 
+    ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_grid(bias ~ key) + 
+    scale_x_continuous(limits = c(0, 1)) +
+    ggtitle("RMSE")
+}
+#m is for model (fitted) values, o is for observed (true) values.
+
+#________________________________________________________________________________
+
 
 #work space below:
 
@@ -188,124 +284,6 @@ summary(test)
 *joint.inter.p#* significance value of the PET-RMA (id*se) adjusted estimates. Significance indicates moderation between bias-adjusted cell means.
 *joint.inter.p#.egger* significance value of the interaction for the PET-RMA (id*se) test, significance indicates overall small-study effect or subgroup differences in small-study effects
 
-
-####* r Package code*
-```{r}
-#If you look in your parent directory, in it you will have two folders and one file called DESCRIPTION. Need to edit the DESCRIPTION file to include all of your contact information, etc.
-
-
-#Step 2: Add functions
-#save funcitons as a "meta.bias.R" in the R directory 
-
-
-#Step 3: Add documentation
-
-#' A Meta-analysis Function
-#'
-#' This fucntion produces a dataset for meta-analysis. Applies both QRP and selection at a proportion specified by propB if sel and QRP are 1 not 0. 
-#' @param k the number of studies in the MA
-#' @param QRP 1 if QRP/p-hacks are available, 0 otherwise
-#' @param sel 1 if publication bias selection exists, 0 otherwise
-#' @param propB the proportion of the sample affected by bias
-#' @param meanD the true effect (or the average of the true effects if heterogeneity exists)
-#' @param sigma the SD around the true effect
-#' @param cbdv the correlation between the multiple DVs
-#' @param maxN the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
-#' @param minN the min of the truncated normal for sample size
-#' @param meanN the mean of the truncated normal for sample size
-#' @param sdN the SD of the truncated normal for sample size
-#' @param multDV 1 if multiple DVs as a hack, 0 otherwise
-#' @param out 1 if optional outlier removal as a hack, 0 otherwise
-#' @param mod 1 if optional moderator as a hack, 0 otherwise
-#' @param colLim number of times to try collecting more data
-#' @param add number to add to each group when collecting more data
-#' @param verbose Should informations be printed?
-#' dataMA()
-
-
-#' A Meta-analysis Function
-#'
-#' This function analyzes the results of dataMA 
-#' @param Q this is fake and does nothing, need help knowing what to put
-#' inspectMA()
-inspectMA <- function(dataset) {
-  # basic model
-  rmamod <- rma(yi = d, sei = se, data = dataset)
-  # test for moderator
-  moderation.test <- rma(yi = d, sei = se, 
-                         mods = ~id, data = dataset)
-  # test for small-study effect
-  egger.PET.test <- rma(yi = d, sei = se,
-                    mods = ~se, data = dataset)
-  # test for moderator after adjustment for small-study
-  joint.test.additive <- rma(yi = d, sei = se,
-                    mods = ~id + se, data = dataset)
-  joint.test.interactive <- rma(yi = d, sei = se,
-                             mods = ~id * se, data = dataset)
-  # not sure how to interpret these parameters in the interactive model
-  # test for moderator in hedges & vevea weight model
-  # return test results
-  out = data.frame(d.obs = summary(rmamod)$b[1],
-                    se.obs = summary(rmamod)$se[1],
-                    d.p = summary(rmamod)$pval[1],
-                    # Moderators
-                    # Note that .1 is the intercept, reference group
-                    mod.b.obs.1 = summary(moderation.test)$b[1],
-                    mod.b.obs.2 = summary(moderation.test)$b[2],
-                    mod.b.obs.3 = summary(moderation.test)$b[3],
-                    mod.p.1 = summary(moderation.test)$pval[1],
-                    mod.p.2 = summary(moderation.test)$pval[2],
-                    mod.p.3 = summary(moderation.test)$pval[3],
-                    # Egger / PET
-                    d.obs.pet = summary(egger.PET.test)$b[1],
-                    p.pet = summary(egger.PET.test)$pval[1],
-                    b.egger = summary(egger.PET.test)$b[2],
-                    p.egger = summary(egger.PET.test)$pval[2],
-                    # joint PET-RMA tests
-                    #Additive model 
-                    joint.add.b1 = summary(joint.test.additive)$b[1],
-                    joint.add.b2 = summary(joint.test.additive)$b[2],
-                    joint.add.b3 = summary(joint.test.additive)$b[3],
-                    joint.add.b.egger = summary(joint.test.additive)$b[4],
-                    joint.add.p1 = summary(joint.test.additive)$pval[1],
-                    joint.add.p2 = summary(joint.test.additive)$pval[2],
-                    joint.add.p3 = summary(joint.test.additive)$pval[3],
-                    joint.add.p.egger = summary(joint.test.additive)$pval[4],
-                    #Interactive model
-                    joint.inter.b1 = summary(joint.test.interactive)$b[1],
-                    joint.inter.b2 = summary(joint.test.interactive)$b[2],
-                    joint.inter.b3 = summary(joint.test.interactive)$b[3],
-                    joint.inter.b.se = summary(joint.test.interactive)$b[4],
-                    joint.inter.b2.se = summary(joint.test.interactive)$b[5],
-                    joint.inter.b3.se = summary(joint.test.interactive)$b[6],
-                    joint.inter.p1 = summary(joint.test.interactive)$pval[1],
-                    joint.inter.p2 = summary(joint.test.interactive)$pval[2],
-                    joint.inter.p3 = summary(joint.test.interactive)$pval[3],
-                    joint.inter.p.se = summary(joint.test.interactive)$pval[4],
-                    joint.inter.p2.se = summary(joint.test.interactive)$pval[5],
-                    joint.inter.p3.se = summary(joint.test.interactive)$pval[6]
-                    )
-  return(data.frame(out))
-  }
-
-
-
-
-#Step 4: Process your documentation
-#Now you need to create the documentation from your annotations earlier. You’ve already done the “hard” work in Step 3. Step 4 is as easy doing this:
-
-#This automatically adds in the .Rd files to the man directory, and adds a NAMESPACE file to the main directory. You can read up more about these, but in terms of steps you need to take, you really don’t have to do anything further.
-
-
-#Step 5: Install!
-#Now it is as simple as installing the package! You need to run this from the parent working directory that contains the cats folder.
- 
-#Now you have a real, live, functioning R package. For example, try typing ?cat_function. You should see the standard help page pop up!
-
-#Step 6: Make the package a GitHub repo
-# to putting your package onto GitHub is that you can use the devtools install_github() function to install your new package directly from the GitHub page.
-
-```
 
 ####*Simulate a meta-analytic dataset with dataMA()*
 
@@ -382,7 +360,6 @@ funnel(empN.boost1, level=c(90, 95, 99),
 
 
 ```
-
 
 
 *Simulate a moderator effect (meta-regression)*
