@@ -150,4 +150,10 @@ res.smallfx.medPB.hiQRP <- runStudy(nSim = 1000, k = 20, d = c(0, .2, .4),
 
 save.image("sim.RData")
 
-
+# TODO: Implement selection modeling
+# Without moderator
+with(testset,
+     weightfunct(effect = d, v = v))
+# With moderator
+with(testset,
+     weightfunct(effect = d, v = v, mods = ~id))

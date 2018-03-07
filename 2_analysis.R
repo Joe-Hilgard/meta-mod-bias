@@ -9,6 +9,7 @@ library(pwr)
 library(compiler)
 library(metafor)
 library(forcats)
+library(weightr)
 source("sim-studies/sim-studies.R", chdir=TRUE)
 source("hilgard_functions.R")
 

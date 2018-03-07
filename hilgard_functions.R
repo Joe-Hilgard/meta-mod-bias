@@ -89,14 +89,16 @@ inspectMA <- function(dataset) {
   joint.test.interactive <- rma(yi = d, sei = se,
                                 mods = ~id * se, data = dataset,
                                 control = list(stepadj = .5))
-  # not sure how to interpret these parameters in the interactive model
-  # test for moderator in hedges & vevea weight model
+  # TODO: test for moderator in hedges & vevea weight model
+  weightmodel <- with(dataset,
+                      weightfunct(d, v, mods = ~id))
   # return test results
   res.basic <- summary(rmamod)
   res.mod <- summary(moderation.test)
   res.pet <- summary(egger.PET.test)
   res.add <- summary(joint.test.additive)
   res.int <- summary(joint.test.interactive)
+  #res.sel <- 
   
   # Collate results into data frame
   # Maybe the tryCatch way to do this would be to just tidy() all results
