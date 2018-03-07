@@ -225,7 +225,7 @@ RMSE = function(m, o){
   #o = Observed_values
   #plot RMSE
   bind_rows(m, o) %>%
-    gather(key, value, mod.obs.b2:mod.obs.b3) %>% 
+    gather(key, value, d.obs) %>% 
     ggplot(aes(x = value)) +
     geom_histogram() +
     facet_grid(bias ~ key) + 
