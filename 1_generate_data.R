@@ -56,6 +56,37 @@ source("hilgard_functions.R")
 # testing that passing of arguments is working right
 set.seed(999)
 testset <- modMA(k = 30, d = c(0, .3, .6))
+
+#attempt 1
+foo <- function() stop("unused arguments")
+bar <- function() 'NA'
+
+x <- tryCatch(
+  {
+    foo()
+  },
+  error = function(e){
+    bar()
+  }
+)
+
+#attempt 2
+myTryCatch <- function(expr) {
+  warn <- err <- NULL
+  value <- withCallingHandlers(
+    tryCatch(expr, error=function(e) {
+      err <<- e
+      NULL
+    }), warning=function(w) {
+      warn <<- w
+      invokeRestart("muffleWarning")
+    })
+  list(value=value, warning=warn, error=err)
+}
+
+myTryCatch(modMA(k = 30, d = c(0, .3, .6)))
+
+
 # check contrasts
 testset$id
 # check summary stats of sample size
