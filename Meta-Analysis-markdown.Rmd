@@ -10,8 +10,12 @@ output:
 Next steps:
 - selection modeling - retrieve cell means ($par) and p-values (hession)
   - see code in meta-showdown and see how Felix did it
+  
+  
 - TryCatch(), parallelize? to handel falures of convergance 
   - purrr for vectorizing 
+
+
 
 Parameters would be:
 - B1, b2, b3
@@ -49,6 +53,7 @@ library(pwr)
 library(compiler)
 library(metafor)
 library(ggplot2)
+library(numDeriv)
 
 # load study-simulating functions
 source("sim-studies/sim-studies.R", chdir=TRUE)
@@ -71,19 +76,13 @@ load("sim.Rdata")
 
 ####*Example*
 ```{r}
-ggplot(diamonds, aes(x = carat, y = price, col = color) +
-       geom_point() + #plots stuff
-         facet_wrap(~color) + #separtest into plots
-         geom_smooth() + #(#can use aes(group = color)to tell it to group by specific type for the line) + #defalt is weighted moving average, can spesific like method = "lm" 
-         scale_x_continuous("Estimate (d)", breaks = c(-0.3, 0, 0.3, 0.6, 0.9))) 
-       
+dia <- sample_n(diamonds, 5000)
 
-#get random sample from dataset
-mydiam = diamonds %>% 
-  sample_n(5000)
-summary(diamonds)
-ggplot(diamonds, aes(x = carat, y = price, col = color) + 
-         geom_point())
+ggplot(dia,  aes(x = carat, y = price, col = color)) + 
+    geom_point() + 
+  facet_wrap(~color) + 
+  geom_smooth(aes(group = color))
+
 ```
 ####*Code that does it all in one*
 ```{r}
@@ -102,8 +101,8 @@ modMA <- function(k, selProp = 0, qrpEnv = "none", empN.boost = 0) {
   return(bind_rows(data.frame(d1), data.frame(d2), data.frame(d3), .id = "id"))
 }
 
-
 # function to analyze results of dataMA
+
 inspectMA <- function(dataset) {
   # basic model
   rmamod <- rma(yi = d, sei = se, data = dataset)
@@ -373,6 +372,8 @@ tidy_psm <- function(x) {
 #point estimate out like this:
 mod <- with(data, weightfunct(d, v))
 b <- mod[[2]]$par
+
+hessian()
 
 #I suspect getting a standard error, confidence interval, p-value, etc. will require using the Hessian matrix stored at mod[[2]]$hessian. Feel like researching this?
 

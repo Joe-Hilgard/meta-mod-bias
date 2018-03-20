@@ -86,6 +86,16 @@ myTryCatch <- function(expr) {
 
 myTryCatch(modMA(k = 30, d = c(0, .3, .6)))
 
+#Attept 3
+
+try(, silent = T)
+
+databasic = c(2, 3, 4, 5, 2, "NA", 6, 7)
+View(databasic)
+mean(databasic)
+try(mean(databasic), silent = T)
+tryCatch(expr = mean(databasic), finally = if("NA") replace(0))
+
 
 # check contrasts
 testset$id
