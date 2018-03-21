@@ -55,7 +55,7 @@ source("hilgard_functions.R")
 
 # testing that passing of arguments is working right
 set.seed(999)
-testset <- modMA(k = 30, d = c(0, .3, .6))
+testset1 <- modMA(k = 30, d = c(0, .3, .6))
 
 #attempt 1
 foo <- function() stop("unused arguments")
@@ -95,6 +95,27 @@ View(databasic)
 mean(databasic)
 try(mean(databasic), silent = T)
 tryCatch(expr = mean(databasic), finally = if("NA") replace(0))
+
+#attept 4
+
+# Get any arguments
+arguments <- commandArgs(trailingOnly=TRUE)
+a <- arguments[1]
+
+# Define a division function that can issue warnings and errors
+myDivide <- function(d, a) {
+  if (a == 'unused arguments') {
+    return_value <- 'NA'
+    warning("NA was placed")
+  } else if (a == 'error') {
+    return_value <- 'myDivide error result'
+    stop("myDivide error message")
+  } else {
+    return_value = d / as.numeric(a)
+  }
+  return(return_value)
+}
+myDivide(testset1, inspectMA(testset1))
 
 
 # check contrasts
