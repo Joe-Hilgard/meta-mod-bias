@@ -8,6 +8,7 @@ library(truncdist)
 library(pwr)
 library(compiler)
 library(metafor)
+library(weightr)
 
 # load study-simulating functions
 source("sim-studies/sim-studies.R", chdir=TRUE)
