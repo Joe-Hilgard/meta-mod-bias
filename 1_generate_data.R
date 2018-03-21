@@ -13,6 +13,7 @@ library(weightr)
 # load study-simulating functions
 source("sim-studies/sim-studies.R", chdir=TRUE)
 source("hilgard_functions.R")
+source("tidy_functions.R")
 
 # Tough choice between dataMA and simMA.
 # dataMA did the old approach of letting you force some percentage of studies to be stat sig.
@@ -56,68 +57,7 @@ source("hilgard_functions.R")
 
 # testing that passing of arguments is working right
 set.seed(999)
-testset1 <- modMA(k = 30, d = c(0, .3, .6))
-
-#attempt 1
-foo <- function() stop("unused arguments")
-bar <- function() 'NA'
-
-x <- tryCatch(
-  {
-    foo()
-  },
-  error = function(e){
-    bar()
-  }
-)
-
-#attempt 2
-myTryCatch <- function(expr) {
-  warn <- err <- NULL
-  value <- withCallingHandlers(
-    tryCatch(expr, error=function(e) {
-      err <<- e
-      NULL
-    }), warning=function(w) {
-      warn <<- w
-      invokeRestart("muffleWarning")
-    })
-  list(value=value, warning=warn, error=err)
-}
-
-myTryCatch(modMA(k = 30, d = c(0, .3, .6)))
-
-#Attept 3
-
-try(, silent = T)
-
-databasic = c(2, 3, 4, 5, 2, "NA", 6, 7)
-View(databasic)
-mean(databasic)
-try(mean(databasic), silent = T)
-tryCatch(expr = mean(databasic), finally = if("NA") replace(0))
-
-#attept 4
-
-# Get any arguments
-arguments <- commandArgs(trailingOnly=TRUE)
-a <- arguments[1]
-
-# Define a division function that can issue warnings and errors
-myDivide <- function(d, a) {
-  if (a == 'unused arguments') {
-    return_value <- 'NA'
-    warning("NA was placed")
-  } else if (a == 'error') {
-    return_value <- 'myDivide error result'
-    stop("myDivide error message")
-  } else {
-    return_value = d / as.numeric(a)
-  }
-  return(return_value)
-}
-myDivide(testset1, inspectMA(testset1))
-
+testset <- modMA(k = 30, d = c(0, .3, .6))
 
 # check contrasts
 testset$id

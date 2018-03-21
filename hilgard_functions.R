@@ -74,14 +74,23 @@ modMA.post <- function(k, delta, tau = 0,
 
 inspectMA <- function(dataset) {
   # basic model
-  rmamod <- rma(yi = d, sei = se, data = dataset)
+  rmamod <- tryCatch(
+    rma(yi = d, sei = se, data = dataset),
+    error = function(e) rma(yi = d, sei = se, data = dataset,
+                            control = list(stepadj = .5))
+    )
   # test for moderator
-  moderation.test <- rma(yi = d, sei = se, 
-                         mods = ~id, data = dataset)
+  moderation.test <- tryCatch(
+    rma(yi = d, sei = se, mods = ~id, data = dataset),
+    error = function(e) rma(yi = d, sei = se, mods = ~id, data = dataset,
+                            control = list(stepadj = .5))
+    )
   # test for small-study effect
-  egger.PET.test <- rma(yi = d, sei = se,
-                        mods = ~se, data = dataset,
-                        control = list(stepadj = .5))
+  egger.PET.test <- tryCatch(
+    rma(yi = d, sei = se, mods = ~se, data = dataset),
+    error = function(e) rma(yi = d, sei = se, mods = ~se, data = dataset,
+                            control = list(stepadj = .5))
+    )
   # test for moderator after adjustment for small-study
   joint.test.additive <- rma(yi = d, sei = se,
                              mods = ~id + se, data = dataset,
@@ -98,7 +107,7 @@ inspectMA <- function(dataset) {
   res.pet <- summary(egger.PET.test)
   res.add <- summary(joint.test.additive)
   res.int <- summary(joint.test.interactive)
-  #res.sel <- 
+  res.sel <- tidy_psm(weightmodel)
   
   # Collate results into data frame
   # Maybe the tryCatch way to do this would be to just tidy() all results
@@ -141,7 +150,14 @@ inspectMA <- function(dataset) {
                    joint.inter.p3 = res.int$pval[3],
                    joint.inter.p1.egger = res.int$pval[4],
                    joint.inter.p2.egger = res.int$pval[5],
-                   joint.inter.p3.egger = res.int$pval[6]
+                   joint.inter.p3.egger = res.int$pval[6],
+                   # Hedges-Vevea model
+                   sel.b1 = res.sel[2, "b"],
+                   sel.b2 = res.sel[3, "b"],
+                   sel.b3 = res.sel[4, "b"],
+                   sel.p1 = res.sel[2, "p"],
+                   sel.p2 = res.sel[3, "p"],
+                   sel.p3 = res.sel[4, "p"]
   )
   return(data.frame(out))
 }
