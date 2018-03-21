@@ -8,12 +8,26 @@ output:
 ---
 
 Next steps:
-Plot:
-- RMSE
+- selection modeling - retrieve cell means ($par) and p-values (hession)
+  - see code in meta-showdown and see how Felix did it
+  
+  
+- TryCatch(), parallelize? to handel falures of convergance 
+  - purrr for vectorizing 
+
+
+
 Parameters would be:
 - B1, b2, b3
    - Ggplot: x= b1, b2, b3; y = obs value; jitter; shape = est (naïve, additive PET, interactive pet; error bar = quantile 
 
+- Get parameters and p-values in weightfun
+  - look at metashowdown on get up
+  - better at recovering moderators?
+  
+- mising value or trycatch()
+
+- mutate(dataset(testset), me = d - D, rmse = sqrt((d-D)^2))
 
 
 ####*Techniques for detecting and adjusting bias*
@@ -38,9 +52,14 @@ library(truncdist)
 library(pwr)
 library(compiler)
 library(metafor)
+library(ggplot2)
+library(numDeriv)
 
 # load study-simulating functions
 source("sim-studies/sim-studies.R", chdir=TRUE)
+# example data set for testing & debugging
+load("sim.Rdata")
+
 ```
 
 *k* the number of studies in the MA
@@ -55,6 +74,16 @@ source("sim-studies/sim-studies.R", chdir=TRUE)
 *qrpEnv* the qrp environment that produced the literature: 'none', 'low', 'med', 'high'
 *empN.boost* A constant that is added to the empirical effect sizes
 
+####*Example*
+```{r}
+dia <- sample_n(diamonds, 5000)
+
+ggplot(dia,  aes(x = carat, y = price, col = color)) + 
+    geom_point() + 
+  facet_wrap(~color) + 
+  geom_smooth(aes(group = color))
+
+```
 ####*Code that does it all in one*
 ```{r}
 
@@ -72,8 +101,8 @@ modMA <- function(k, selProp = 0, qrpEnv = "none", empN.boost = 0) {
   return(bind_rows(data.frame(d1), data.frame(d2), data.frame(d3), .id = "id"))
 }
 
-
 # function to analyze results of dataMA
+
 inspectMA <- function(dataset) {
   # basic model
   rmamod <- rma(yi = d, sei = se, data = dataset)
@@ -134,111 +163,219 @@ inspectMA <- function(dataset) {
   return(data.frame(out))
   }
 
-# example data set for testing & debugging
-#final_output.cvs?
+
 
 # function to make various visuals of MA: (?)
 
-visualizeMA <- function(dataset){
-  visu.data = plot(dataset)
-  return(visu.data)}
+visualizeMA <- function(dataset)
 
+
+
+theme_poster <- theme(text = element_text(size = 32),
+                      legend.position = "none")
+
+temp <- bind_rows(noBias = res.nobias, 
+                  bias = res.medPB.hiQRP, 
+                  .id = "id") %>% 
+  select(id,
+         mod.obs.b1:mod.obs.b3, 
+         joint.add.b1:joint.add.b3, 
+         joint.inter.b1:joint.inter.b3) %>% 
+  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  # augment with true values & fix factor order
+  mutate(delta = ifelse(coefficient == "b1", 0,
+                        ifelse(coefficient == "b2", 0.3, 0.6)),
+         rmse = sqrt((value - delta)^2),
+         id = fct_relevel(id, c("noBias", "bias")),
+         estimator = fct_relevel(estimator, c("obs", "add", "inter")))
+
+temp2 <- bind_rows(noBias = res.smallfx.nobias, 
+                  bias = res.smallfx.medPB.hiQRP, 
+                  .id = "id") %>% 
+  select(id,
+         mod.obs.b1:mod.obs.b3, 
+         joint.add.b1:joint.add.b3, 
+         joint.inter.b1:joint.inter.b3) %>% 
+  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  # augment with true values
+  mutate(delta = ifelse(coefficient == "b1", 0,
+                        ifelse(coefficient == "b2", 0.2, 0.4)),
+         rmse = sqrt((value - delta)^2),
+         id = fct_relevel(id, c("noBias", "bias")),
+         estimator = fct_relevel(estimator, c("obs", "add", "inter")))
+
+# plot means
+temp %>% 
+  group_by(id, estimator, coefficient, delta) %>% 
+  summarize(m = mean(value),
+            q.lower = quantile(value, .025),
+            q.upper = quantile(value, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator)) +
+  geom_hline(aes(yintercept = delta), col = 'grey25') +
+  geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
+                  size = 2, position = position_dodge(width = .5)) +
+  facet_grid(~id) +
+  scale_y_continuous("Estimate (d)",
+                     breaks = c(-0.3, 0, 0.3, 0.6, 0.9)) +
+  theme_poster
+ggsave("me_bigfx.png", width = 10.25, height = 4)
+
+temp2 %>% 
+  group_by(id, estimator, coefficient, delta) %>% 
+  summarize(m = mean(value),
+            q.lower = quantile(value, .025),
+            q.upper = quantile(value, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator)) +
+  geom_hline(aes(yintercept = delta), col = 'grey25') +
+  geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
+                  size = 2, position = position_dodge(width = .5)) +
+  facet_grid(~id) +
+  scale_y_continuous("Estimate (d)",
+                     breaks = c(-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8)) +
+  theme_poster
+ggsave("me_smfx.png", width = 10.25, height = 4)
+
+
+# plot RMSE
+temp %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(m = mean(rmse),
+            q.lower = quantile(rmse, .025),
+            q.upper = quantile(rmse, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator,
+             ymin = q.lower, ymax = q.upper)) +
+  geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+  facet_wrap(~id) +
+  scale_y_continuous("RMSE") +
+  theme_poster
+ggsave("rmse_bigfx.png", width = 10.25, height = 4)
+
+temp2 %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(m = mean(rmse),
+            q.lower = quantile(rmse, .025),
+            q.upper = quantile(rmse, .975)) %>% 
+  ggplot(aes(x = coefficient, y = m, shape = estimator,
+             ymin = q.lower, ymax = q.upper)) +
+  geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+  facet_wrap(~id) +
+  scale_y_continuous("RMSE") +
+  theme_poster
+ggsave("rmse_smfx.png", width = 10.25, height = 4)
+
+# Power / Type I
+temp.p <- bind_rows(noBias = res.nobias, 
+                    bias = res.medPB.hiQRP, 
+                    .id = "id") %>% 
+  select(id,
+         mod.p1:mod.p3, 
+         joint.add.p1:joint.add.p3, 
+         joint.inter.p1:joint.inter.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
+           fill = "left") %>% 
+  mutate(id = fct_relevel(id, "noBias", "bias"),
+         estimator = fct_relevel(estimator, c("mod", "add", "inter")))
+
+temp.p2 <- bind_rows(noBias = res.smallfx.nobias, 
+                    bias = res.smallfx.medPB.hiQRP, 
+                    .id = "id") %>% 
+  select(id,
+         mod.p1:mod.p3, 
+         joint.add.p1:joint.add.p3, 
+         joint.inter.p1:joint.inter.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
+           fill = "left") %>% 
+  mutate(id = fct_relevel(id, "noBias", "bias"),
+         estimator = fct_relevel(estimator, c("mod", "add", "inter")))
+
+temp.p %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(sig = mean(value < .05)) %>% 
+  ggplot(aes(x = coefficient, y = sig, 
+             shape = interaction(estimator, id),
+             group = estimator)) +
+  geom_point(size = 5, position = position_dodge(width = .5)) +
+  scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
+  theme_poster
+ggsave("nhst_bigfx.png", width = 6, height = 4)
+
+temp.p2 %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(sig = mean(value < .05)) %>% 
+  ggplot(aes(x = coefficient, y = sig, 
+             shape = interaction(estimator, id),
+             group = estimator)) +
+  geom_point(size = 5, position = position_dodge(width = .5)) +
+  scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
+  theme_poster
+ggsave("nhst_smfx.png", width = 6, height = 4)
+
+# temp.p2 %>% 
+#   group_by(id, estimator, coefficient) %>% 
+#   summarize(sig = mean(value < .05)) %>% 
+#   ggplot(aes(x = coefficient, y = sig, shape = estimator)) +
+#   geom_point(size = 3, position = position_dodge(width = .5)) +
+#   facet_wrap(~id)
+
+
+
+
+
+# approach 2: scatterpoints
+# Looks too muddy
+# temp %>% 
+#   group_by(id, estimator, coefficient, delta) %>% 
+#   ggplot(aes(x = coefficient, y = value, shape = estimator)) +
+#   geom_boxplot(position = position_dodge(width = .5)) +
+#   geom_jitter(alpha = .5,
+#               position = position_jitterdodge(dodge.width = .5, jitter.width = .25)) +
+#   facet_grid(~id) +
+#   geom_point(aes(y = delta), col = 'darkred', size = 2) +
+#   scale_y_continuous(breaks = c(-0.3, 0, 0.3, 0.6, 0.9))
 #________________________________________________________________________________
-is_sig <- function(x) x < .05
 
-summarize_run <- function(x) {
-  # Get estimates of d, moderator parameters, bias parameter, bias-adjusted PET
-  x.est <- x %>% 
-    summarize_at(.vars = vars(d.obs, mod.obs.b1:mod.obs.b3, d.obs.pet, 
-                              joint.add.b1:joint.add.b3, joint.inter.b1:joint.inter.b3),
-                 .funs = funs(mean)) %>% 
-    # make cell means (NOTE: ASSUMES DUMMY CODING)
-    # Might be a simpler way... lsmeans package?
-    # use transmute to drop all other columns
-    transmute(d.obs,
-              d.obs.pet,
-              d1.obs = mod.obs.b1,
-              d2.obs = mod.obs.b1 + mod.obs.b2,
-              d3.obs = mod.obs.b1 + mod.obs.b3, 
-              joint.add.d1.obs = joint.add.b1,
-              joint.add.d2.obs = joint.add.b1 + joint.add.b2,
-              joint.add.d3.obs = joint.add.b1 + joint.add.b3,
-              joint.inter.d1.obs = joint.inter.b1,
-              joint.inter.d2.obs = joint.inter.b1 + joint.inter.b2,
-              joint.inter.d3.obs = joint.inter.b1 + joint.inter.b3)
 
-  # Get power (or Type I) rates for each p-value test
-  x.pow <- x %>% 
-    summarize_at(.vars = vars(d.p, mod.p.1:mod.p.3, 
-                              joint.add.p1:joint.add.p3,
-                              joint.inter.p1:joint.inter.p3),
-                 .funs = funs(mean(is_sig(.))))
-  
-  return(bind_cols(x.est, x.pow))
+# Function for extracting selection model results as tidy table
+tidy_psm <- function(x) {
+  # get coefficients
+  b <- x[[2]]$par
+  # get SEs as the sqrt of the inverse of the hessian
+  se.psm <- diag(sqrt(solve(x[[2]]$hessian)))
+  # make row names
+  # Get moderator names
+  mods <- colnames(x$XX)[-1]
+  # Get selection steps
+  steps <- NULL
+  for (i in 2:length(x$steps)) {
+    steps <- c(steps, paste0(x$steps[i-1], "<p<", x$steps[i]))
+  }
+  term = c("variance", "intrcpt", mods, steps)
+  # make a data frame
+  out <- data.frame(term, b = b, se = se.psm) %>% 
+    # add z-scores, p-vals, CIs
+    mutate(z = b/se,
+           p = 2*pnorm(abs(z), lower.tail = F),
+           ci.lb = b - 1.96*se,
+           ci.ub = b + 1.96*se)
+  return(out)
 }
-
-# Plot observed cell means across runs
-plotCellMeans <- function(data1, data2, name1, name2) {
-  # Label facets with name arguments
-  data1$bias <- name1
-  data2$bias <- name2
-  # Generate cell means (assumes dummy coding!)
-  # and plot them
-  bind_rows(data1, data2) %>% 
-    mutate(d1.obs = mod.obs.b1,
-           d2.obs = mod.obs.b1 + mod.obs.b2,
-           d3.obs = mod.obs.b1 + mod.obs.b3) %>% 
-    gather(key, value, d1.obs:d3.obs) %>% 
-    ggplot(aes(x = value)) +
-    geom_histogram() +
-    facet_grid(bias ~ key) +
-    scale_x_continuous(limits = c(-.2, 1))
-}
-
-# Plot moderator's observed effect size across runs
-plotParamMeans <- function(data1, data2, name1, name2) {
-  # Label facets with name arguments
-  data1$bias <- name1
-  data2$bias <- name2
-  # plot beta values
-  bind_rows(data1, data2) %>% 
-    gather(key, value, mod.obs.b2:mod.obs.b3) %>% 
-    ggplot(aes(x = value)) +
-    geom_histogram() +
-    facet_grid(bias ~ key) +
-    scale_x_continuous(limits = c(0, 1))  +
-    ggtitle("Moderation between d = 0, 0.3, 0.6")
-}
-
-# Function for Mean Error
-ME = function(dataset, m){
-  obs = dataset$d.obs
-  mean(m - obs) %>% 
-  ggplot(aes())
-}
-
-# Function for Root Mean Squared Error
-RMSE = function(m, o){
-  sqrt(mean((m - o)^2))
-  #Label names
-  #m = Model_values
-  #o = Observed_values
-  #plot RMSE
-  bind_rows(m, o) %>%
-    gather(key, value, d.obs) %>% 
-    ggplot(aes(x = value)) +
-    geom_histogram() +
-    facet_grid(bias ~ key) + 
-    scale_x_continuous(limits = c(0, 1)) +
-    ggtitle("RMSE")
-}
-#m is for model (fitted) values, o is for observed (true) values.
-
-#________________________________________________________________________________
 
 
 #work space below:
 
+#point estimate out like this:
+mod <- with(data, weightfunct(d, v))
+b <- mod[[2]]$par
+
+hessian()
+
+#I suspect getting a standard error, confidence interval, p-value, etc. will require using the Hessian matrix stored at mod[[2]]$hessian. Feel like researching this?
 
 ```
 
