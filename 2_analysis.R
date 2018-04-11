@@ -119,7 +119,7 @@ mySummary <- function(x) {
 }
 
 final <- bind_rows(medFX_noBias = mySummary(res.nobias),
-          medFX_medPBhiQRP = mySummary(res.medPB.hiQRP),
+          #medFX_medPBhiQRP = mySummary(res.medPB.hiQRP),
           smallFX_noBias = mySummary(res.smallfx.nobias),
           smallFX_medPBhiQRP = mySummary(res.smallfx.medPB.hiQRP),
           .id = "id")

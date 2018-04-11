@@ -113,6 +113,11 @@ res.smallfx.hiPB <- runStudy(nSim = 1000, k = 20, d = c(0, .2, .4),
 # should probably generate all the data objects in one script and save them as .RData
 res.medPB.hiQRP <- runStudy(nSim = 1000, k = 20, d = c(0, .3, .6), 
                          censor = "medium", qrpEnv = "high")
+# Error message: Error in G[, , 1][1:s, ] : subscript out of bounds
+# I don't know what that means. Seems to have happened in sim-studies.R#233
+# rbind(g1, g3)
+# within analyB(g1 = G[, , 1][1:s, ])
+# May need to check what is G and what would screw it up.
 
 # set 8: subtler effects + med pub bias + hi QRPs
 res.smallfx.medPB.hiQRP <- runStudy(nSim = 1000, k = 20, d = c(0, .2, .4), 
