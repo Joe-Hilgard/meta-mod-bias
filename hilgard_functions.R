@@ -231,7 +231,7 @@ summarize_run <- function(x) {
 
   # Get power (or Type I) rates for each p-value test
   x.pow <- x %>% 
-    summarize_at(.vars = vars(d.p, mod.p.1:mod.p.3, 
+    summarize_at(.vars = vars(d.p, mod.p1:mod.p3, 
                               joint.add.p1:joint.add.p3,
                               joint.inter.p1:joint.inter.p3),
                  .funs = funs(mean(is_sig(.))))
