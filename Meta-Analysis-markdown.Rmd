@@ -8,26 +8,7 @@ output:
 ---
 
 Next steps:
-- selection modeling - retrieve cell means ($par) and p-values (hession)
-  - see code in meta-showdown and see how Felix did it
-  
-  
-- TryCatch(), parallelize? to handel falures of convergance 
-  - purrr for vectorizing 
-
-
-
-Parameters would be:
-- B1, b2, b3
-   - Ggplot: x= b1, b2, b3; y = obs value; jitter; shape = est (naïve, additive PET, interactive pet; error bar = quantile 
-
-- Get parameters and p-values in weightfun
-  - look at metashowdown on get up
-  - better at recovering moderators?
-  
-- mising value or trycatch()
-
-- mutate(dataset(testset), me = d - D, rmse = sqrt((d-D)^2))
+- 
 
 
 ####*Techniques for detecting and adjusting bias*
@@ -369,13 +350,8 @@ tidy_psm <- function(x) {
 
 #work space below:
 
-#point estimate out like this:
-mod <- with(data, weightfunct(d, v))
-b <- mod[[2]]$par
 
-hessian()
 
-#I suspect getting a standard error, confidence interval, p-value, etc. will require using the Hessian matrix stored at mod[[2]]$hessian. Feel like researching this?
 
 ```
 
