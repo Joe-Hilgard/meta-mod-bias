@@ -212,29 +212,39 @@ summarize_run <- function(x) {
   # Get estimates of d, moderator parameters, bias parameter, bias-adjusted PET
   x.est <- x %>% 
     summarize_at(.vars = vars(d.obs, mod.obs.b1:mod.obs.b3, d.obs.pet, 
-                              joint.add.b1:joint.add.b3, joint.inter.b1:joint.inter.b3),
-                 .funs = funs(mean)) %>% 
+                              joint.add.b1:joint.add.b3, joint.inter.b1:joint.inter.b3,
+                              sel.b1:sel.b3),
+                 .funs = funs(mean(., na.rm = T))) %>% 
     # make cell means (NOTE: ASSUMES DUMMY CODING)
     # Might be a simpler way... lsmeans package?
     # use transmute to drop all other columns
     transmute(d.obs,
               d.obs.pet,
+              # moderator model
               d1.obs = mod.obs.b1,
               d2.obs = mod.obs.b1 + mod.obs.b2,
               d3.obs = mod.obs.b1 + mod.obs.b3, 
+              # PET model
               joint.add.d1.obs = joint.add.b1,
               joint.add.d2.obs = joint.add.b1 + joint.add.b2,
               joint.add.d3.obs = joint.add.b1 + joint.add.b3,
+              # PET * moderator model
               joint.inter.d1.obs = joint.inter.b1,
               joint.inter.d2.obs = joint.inter.b1 + joint.inter.b2,
-              joint.inter.d3.obs = joint.inter.b1 + joint.inter.b3)
+              joint.inter.d3.obs = joint.inter.b1 + joint.inter.b3,
+              # Selection model
+              sel.d1.obs = sel.b1,
+              sel.d2.obs = sel.b1 + sel.b2,
+              sel.d3.obs = sel.b1 + sel.b3
+              )
 
   # Get power (or Type I) rates for each p-value test
   x.pow <- x %>% 
     summarize_at(.vars = vars(d.p, mod.p1:mod.p3, 
                               joint.add.p1:joint.add.p3,
-                              joint.inter.p1:joint.inter.p3),
-                 .funs = funs(mean(is_sig(.))))
+                              joint.inter.p1:joint.inter.p3,
+                              sel.p1:sel.p3),
+                 .funs = funs(mean(is_sig(.), na.rm = T)))
   
   return(bind_cols(x.est, x.pow))
 }
@@ -278,3 +288,9 @@ myFunnel <- function(x) {
          refline=0, level=c(90, 95, 99), 
          shade = c("white", "grey75", "grey60"), back = "gray90")
 }
+
+# Piping lesson
+mtcars %>% 
+  filter(am == 1) %>% 
+  lm(mpg ~ wt, data = .)
+  

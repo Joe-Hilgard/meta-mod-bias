@@ -79,7 +79,7 @@ summarize_run(res.smallfx.hiPB)
 # inspect intermediate steps for quality, e.g. unit tests
 # explore different values of vector d
 # check distribution of N -- is it appropriate?
-hist(meta1$N)
+# hist(meta1$N)
 # implement PET-RMA model
 delta <- c(0, .3, .6)
 mySummary <- function(x) {
