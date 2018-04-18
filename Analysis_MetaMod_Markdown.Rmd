@@ -26,36 +26,37 @@ source("2_analysis.R")
 load("sim.Rdata")
 ```
 Todo:
-take 2_analysis and make into a markdown to serve as output for paper
-
 
 re.smallfx summarize?
-
-See poster for what to put in output 
-
 
 -	Results from headge model, analysis and report them
 
 
-Does publication bias (QRP) mess up are moderators miss estimated?
-If yes can we get better estimates by applying adjustments? 
-
-
 ##**Meta Analysis**
+
 This simulation study tests:
+
 1. How publication bias affects ability to detect moderators in meta-analysis
+
 2. Whether adjustments for publication bias may improve or impair detection
 of moderators, given publication bias.
 
 Data are simulated according to two scenarios:
+
 • Medium effects: Studies have true effects of 0, 0.3, or 0.6
+
 • Small effects: Studies have true effects of 0, 0.2, or 0.4
+
 • Data are then subjected to publication bias and QRPs
+
 • No bias: All study results are reported
+
 • Biased: Only 20% of of nonsignificant results are published.
 50% of studies involve aggressive p-hacking,
 40% use moderate p-hacking.
+
 • Number of studies per group is fixed to k = 20
+
 • Studies have sample size of minimum 20/cell, maximum 200/cell, average
 50/cell.
 
@@ -63,8 +64,10 @@ Data are simulated according to two scenarios:
 
 Naïve analysis: Meta-analysis tests the moderator effect without adjustment
 for publication bias
+
 WLS-MRA (single slope): Meta-analysis tests the moderator effect after PET
 adjustment for publication bias. PET slope is fixed across groups.
+
 WLS-MRA (variable slope): Meta-analysis tests the moderator effect after
 PET adjustment for publication bias. PET slope may vary across groups.
 Results are presented in terms of bias, root mean squared error, and Type I/II
@@ -223,7 +226,9 @@ temp2 <- bind_rows(noBias = res.smallfx.nobias,
 ```
 
 ##**Medium effects**
+
 **Group Means: 0, 0.3, 0.6**
+
 Publication bias causes overestimation of δ = 0 and underestimation of mods.
 This underestimation causes increased Type II error rates for moderators.
 PET-RMA does not quite undo this bias and can have poor power and efficiency.
@@ -268,7 +273,7 @@ temp %>%
 ggsave("rmse_bigfx.png", width = 5, height = 4)
 ```
 
-***Power/ Type I**
+**Power/ Type I**
 
 ```{r, echo=FALSE}
 # Power / Type I
@@ -307,7 +312,9 @@ ggsave("nhst_bigfx.png", width = 5, height = 4)
 
 
 ##**Small Effects**
+
 **Group means: 0, 0.2, 0.4**
+
 When effects are smaller, the loss of power is more pronounced.
 Again, PET-RMA does not fix the biases and can inflict further loss of efficiency.
 
