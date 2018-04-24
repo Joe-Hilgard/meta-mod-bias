@@ -162,6 +162,7 @@ mySummary <- function(x) {
       me.b1.inter = mean(joint.inter.b1 - delta[1]),
       me.b2.inter = mean(joint.inter.b2 - delta[2]),
       me.b3.inter = mean(joint.inter.b3 - delta[3]),
+      # TODO: Add sel model outcomes too
       # RMSE        
       rmse.b1 = sqrt(mean((mod.obs.b1 - delta[1])^2)),
       rmse.b2 = sqrt(mean((mod.obs.b2 - delta[2])^2)),
@@ -200,15 +201,23 @@ write.csv(final, "final_output.csv", row.names = F)
 theme_poster <- theme(text = element_text(size = 12),
                       legend.position = "none")
 
-temp <- bind_rows(noBias = res.nobias, 
-                  bias = res.medPB.hiQRP, 
-                  .id = "id") %>% 
+temp <- 
+  # no bias dataset vs medium pub bias + hi QRP dataset
+  bind_rows(noBias = res.nobias, 
+            bias = res.medPB.hiQRP, 
+            .id = "id") %>% 
+  # Select desired columns: model coefficients
   select(id,
          mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
-         joint.inter.b1:joint.inter.b3) %>% 
-  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+         joint.inter.b1:joint.inter.b3,
+         sel.b1:sel.b3) %>% 
+  # gather values into one column; label rows by estimator and coefficient
+  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3, sel.b1:sel.b3) %>% 
+  # Note use of backslash to escape the period b/c we literally mean a period.
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           # have to kludge this b/c it's "sel.b1" and not "mod.sel.b1"
+           fill = "left") %>% 
   # augment with true values & fix factor order
   mutate(delta = ifelse(coefficient == "b1", 0,
                         ifelse(coefficient == "b2", 0.3, 0.6)),
@@ -216,16 +225,23 @@ temp <- bind_rows(noBias = res.nobias,
          id = fct_relevel(id, c("noBias", "bias")),
          estimator = fct_relevel(estimator, c("obs", "add", "inter")))
 
-temp2 <- bind_rows(noBias = res.smallfx.nobias, 
+temp2 <- 
+  # small effects: no bias dataset vs medium pub bias + hi QRP dataset
+  bind_rows(noBias = res.smallfx.nobias, 
                   bias = res.smallfx.medPB.hiQRP, 
                   .id = "id") %>% 
+  # Select desired columns: model coefficients
   select(id,
          mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
-         joint.inter.b1:joint.inter.b3) %>% 
-  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
-  # augment with true values
+         joint.inter.b1:joint.inter.b3,
+         sel.b1:sel.b3) %>% 
+  # gather values into one column; label rows by estimator and coefficient
+  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3, sel.b1:sel.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           # have to kludge this b/c it's "sel.b1" and not "mod.sel.b1"
+           fill = "left") %>% 
+  # augment with true values & fix factor order
   mutate(delta = ifelse(coefficient == "b1", 0,
                         ifelse(coefficient == "b2", 0.2, 0.4)),
          rmse = sqrt((value - delta)^2),
@@ -257,8 +273,7 @@ temp %>%
                   size = 1, position = position_dodge(width = .5)) +
   facet_grid(~id) +
   scale_y_continuous("Estimate (d)",
-                     breaks = c(-0.3, 0, 0.3, 0.6, 0.9)) +
-  theme_poster
+                     breaks = c(-0.3, 0, 0.3, 0.6, 0.9)) 
 ggsave("me_bigfx.png", width = 5, height = 4)
 ```
 
@@ -276,8 +291,7 @@ temp %>%
              ymin = q.lower, ymax = q.upper)) +
   geom_pointrange(size = 1, position = position_dodge(width = .5)) +
   facet_wrap(~id) +
-  scale_y_continuous("RMSE") +
-  theme_poster
+  scale_y_continuous("RMSE") 
 ggsave("rmse_bigfx.png", width = 5, height = 4)
 ```
 
@@ -286,14 +300,17 @@ ggsave("rmse_bigfx.png", width = 5, height = 4)
 ```{r, echo=FALSE}
 # Power / Type I
 #Meduim effects
-temp.p <- bind_rows(noBias = res.nobias, 
+temp.p <- 
+  # make power/type I dataset comparing nobias & mediumbias + hiQRP
+  bind_rows(noBias = res.nobias, 
                     bias = res.medPB.hiQRP, 
                     .id = "id") %>% 
   select(id,
          mod.p1:mod.p3, 
          joint.add.p1:joint.add.p3, 
-         joint.inter.p1:joint.inter.p3) %>% 
-  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+         joint.inter.p1:joint.inter.p3,
+         sel.p1:sel.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:joint.inter.p3, sel.p1:sel.p3) %>% 
   separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
            # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
            fill = "left") %>% 
@@ -308,13 +325,13 @@ temp.p <- bind_rows(noBias = res.nobias,
 #medium effect
 temp.p %>% 
   group_by(id, estimator, coefficient) %>% 
-  summarize(sig = mean(value < .05)) %>% 
+  summarize(sig = mean(value < .05, na.rm = T)) %>% 
   ggplot(aes(x = coefficient, y = sig, 
-             shape = interaction(estimator, id),
+             color = estimator,
              group = estimator)) +
-  geom_point(size = 5, position = position_dodge(width = .5)) +
-  scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
-  theme_poster
+  geom_point(size = 5, position = position_dodge(width = .8)) +
+  facet_wrap(~id)
+  #scale_shape_manual(values = c(16, 17, 15, 1, 2, 0))
 ggsave("nhst_bigfx.png", width = 5, height = 4)
 ```
 
@@ -342,8 +359,7 @@ temp2 %>%
                   size = 1, position = position_dodge(width = .5)) +
   facet_grid(~id) +
   scale_y_continuous("Estimate (d)",
-                     breaks = c(-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8)) +
-  theme_poster
+                     breaks = c(-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8))
 ggsave("me_smfx.png", width =5, height = 4)
 
 ```
@@ -362,8 +378,7 @@ temp2 %>%
              ymin = q.lower, ymax = q.upper)) +
   geom_pointrange(size = 1, position = position_dodge(width = .5)) +
   facet_wrap(~id) +
-  scale_y_continuous("RMSE") +
-  theme_poster
+  scale_y_continuous("RMSE")
 ggsave("rmse_smfx.png", width = 5, height = 4)
 ```
 
@@ -379,8 +394,9 @@ temp.p2 <- bind_rows(noBias = res.smallfx.nobias,
   select(id,
          mod.p1:mod.p3, 
          joint.add.p1:joint.add.p3, 
-         joint.inter.p1:joint.inter.p3) %>% 
-  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+         joint.inter.p1:joint.inter.p3,
+         sel.p1:sel.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:sel.p3) %>% 
   separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
            # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
            fill = "left") %>% 
@@ -395,13 +411,11 @@ temp.p2 <- bind_rows(noBias = res.smallfx.nobias,
 #Small effect
 temp.p2 %>% 
   group_by(id, estimator, coefficient) %>% 
-  summarize(sig = mean(value < .05)) %>% 
+  summarize(sig = mean(value < .05, na.rm = T)) %>% 
   ggplot(aes(x = coefficient, y = sig, 
-             shape = interaction(estimator, id),
+             color = interaction(estimator, id),
              group = estimator)) +
   geom_point(size = 5, position = position_dodge(width = .5)) +
-  scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
-  theme_poster
 ggsave("nhst_smfx.png", width = 5, height = 4)
 ```
 
