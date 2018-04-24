@@ -27,9 +27,17 @@ load("sim.Rdata")
 ```
 Todo:
 
-re.smallfx summarize?
+- Read this paper -- it's an interesting one that will teach you about p-curve and the Hedges-Vevea selection model.
 
--	Results from headge model, analysis and report them
+- Think of a better way to plot these things, especially power. Maybe we put estimator on a facet_wrap or facet_grid so that readers can see overplotting of bias vs nobias.
+
+- Writing: Please start writing up the results section -- use the plots as well as the data frames underlying the plots.
+
+- For each bias scenario:
+    for each estimator:
+       consider ME, RMSE, Type I and Type II error.
+
+- Discussion: Try to draw some broader lessons. Which estimators should be used? How badly does pub bias screw up moderator analysis? Should reviewers ask for PET + moderation? Hedges + moderation?
 
 
 ##**Meta Analysis**

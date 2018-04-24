@@ -1,8 +1,10 @@
 ---
-title: "Analysis MetaMod Markdown"
+title: "Analysis_MetaMod_Markdown"
 author: "Olivia Cody"
 date: "4/12/2018"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -26,13 +28,11 @@ load("sim.Rdata")
 Todo:
 take 2_analysis and make into a markdown to serve as output for paper
 
-error source 
 
 re.smallfx summarize?
 
 See poster for what to put in output 
 
-mod.p1 need mod.p1 
 
 -	Results from headge model, analysis and report them
 
@@ -40,6 +40,12 @@ mod.p1 need mod.p1
 Does publication bias (QRP) mess up are moderators miss estimated?
 If yes can we get better estimates by applying adjustments? 
 
+
+####*Meta Analysis*
+This simulation study tests:
+1. How publication bias affects ability to detect moderators in meta-analysis
+2. Whether adjustments for publication bias may improve or impair detection
+of moderators, given publication bias.
 
 ```{r, echo=FALSE}
 # summarize results of set 1 and set 2
@@ -105,7 +111,7 @@ summarize_run(res.smallfx.hiPB)
 # inspect intermediate steps for quality, e.g. unit tests
 # explore different values of vector d
 # check distribution of N -- is it appropriate?
-hist(meta1$N)
+#hist(meta1$N)
 # implement PET-RMA model
 delta <- c(0, .3, .6)
 mySummary <- function(x) {
