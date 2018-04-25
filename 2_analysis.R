@@ -80,6 +80,8 @@ summarize_run(res.smallfx.hiPB)
 # explore different values of vector d
 # check distribution of N -- is it appropriate?
 #hist(meta1$N)
+# hist(meta1$N)
+
 # implement PET-RMA model
 delta <- c(0, .3, .6)
 mySummary <- function(x) {
@@ -95,6 +97,9 @@ mySummary <- function(x) {
       me.b1.inter = mean(joint.inter.b1 - delta[1]),
       me.b2.inter = mean(joint.inter.b2 - delta[2]),
       me.b3.inter = mean(joint.inter.b3 - delta[3]),
+      me.b1.sel = mean(sel.b1 - delta[1]),
+      me.b1.sel = mean(sel.b2 - delta[2]),
+      me.b1.sel = mean(sel.b3 - delta[3]),
       # RMSE        
       rmse.b1 = sqrt(mean((mod.obs.b1 - delta[1])^2)),
       rmse.b2 = sqrt(mean((mod.obs.b2 - delta[2])^2)),
@@ -104,7 +109,10 @@ mySummary <- function(x) {
       rmse.b3.add = sqrt(mean((joint.add.b3 - delta[3])^2)),
       rmse.b1.inter = sqrt(mean((joint.inter.b1 - delta[1])^2)),
       rmse.b2.inter = sqrt(mean((joint.inter.b2 - delta[2])^2)),
-      rmse.b3.inter = sqrt(mean((joint.inter.b3 - delta[3])^2)),          
+      rmse.b3.inter = sqrt(mean((joint.inter.b3 - delta[3])^2)),
+      rmse.b1.sel = sqrt(mean((sel.b1 - delta[1])^2)),
+      rmse.b2.sel = sqrt(mean((sel.b2 - delta[2])^2)),
+      rmse.b3.sel = sqrt(mean((sel.b3 - delta[3])^2)),
       # Power / Type I  
       pow.b1 = mean(mod.p1 < .05),
       pow.b2 = mean(mod.p2 < .05),
@@ -114,7 +122,10 @@ mySummary <- function(x) {
       pow.b3.add = mean(joint.add.p3 < .05),
       pow.b1.inter = mean(joint.inter.p1 < .05),
       pow.b2.inter = mean(joint.inter.p2 < .05),
-      pow.b3.inter = mean(joint.inter.p3 < .05)
+      pow.b3.inter = mean(joint.inter.p3 < .05),
+      pow.b1.sel = mean(sel.p1 < .05),
+      pow.b2.sel = mean(sel.p2 < .05),
+      pow.b3.sel = mean(sel.p3 < .05)
     )
 }
 
@@ -136,8 +147,9 @@ temp <- bind_rows(noBias = res.nobias,
   select(id,
          mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
-         joint.inter.b1:joint.inter.b3) %>% 
-  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
+         joint.inter.b1:joint.inter.b3,
+         sel.b1:sel.b3) %>% 
+  gather(key = "key", value = "value", mod.obs.b1:sel.b3) %>% 
   separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
   # augment with true values & fix factor order
   mutate(delta = ifelse(coefficient == "b1", 0,
@@ -152,8 +164,9 @@ temp2 <- bind_rows(noBias = res.smallfx.nobias,
   select(id,
          mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
-         joint.inter.b1:joint.inter.b3) %>% 
-  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3) %>% 
+         joint.inter.b1:joint.inter.b3,
+         sel.b1:sel.b3) %>% 
+  gather(key = "key", value = "value", mod.obs.b1:sel.b3) %>% 
   separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
   # augment with true values
   mutate(delta = ifelse(coefficient == "b1", 0,
@@ -195,31 +208,31 @@ ggsave("me_smfx.png", width = 10.25, height = 4)
 
 
 # plot RMSE
-temp %>% 
-  group_by(id, estimator, coefficient) %>% 
-  summarize(m = mean(rmse),
-            q.lower = quantile(rmse, .025),
-            q.upper = quantile(rmse, .975)) %>% 
-  ggplot(aes(x = coefficient, y = m, shape = estimator,
-             ymin = q.lower, ymax = q.upper)) +
-  geom_pointrange(size = 2, position = position_dodge(width = .5)) +
-  facet_wrap(~id) +
-  scale_y_continuous("RMSE") +
-  theme_poster
-ggsave("rmse_bigfx.png", width = 10.25, height = 4)
-
-temp2 %>% 
-  group_by(id, estimator, coefficient) %>% 
-  summarize(m = mean(rmse),
-            q.lower = quantile(rmse, .025),
-            q.upper = quantile(rmse, .975)) %>% 
-  ggplot(aes(x = coefficient, y = m, shape = estimator,
-             ymin = q.lower, ymax = q.upper)) +
-  geom_pointrange(size = 2, position = position_dodge(width = .5)) +
-  facet_wrap(~id) +
-  scale_y_continuous("RMSE") +
-  theme_poster
-ggsave("rmse_smfx.png", width = 10.25, height = 4)
+# temp %>% 
+#   group_by(id, estimator, coefficient) %>% 
+#   summarize(m = mean(rmse),
+#             q.lower = quantile(rmse, .025),
+#             q.upper = quantile(rmse, .975)) %>% 
+#   ggplot(aes(x = coefficient, y = m, shape = estimator,
+#              ymin = q.lower, ymax = q.upper)) +
+#   geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+#   facet_wrap(~id) +
+#   scale_y_continuous("RMSE") +
+#   theme_poster
+# ggsave("rmse_bigfx.png", width = 10.25, height = 4)
+# 
+# temp2 %>% 
+#   group_by(id, estimator, coefficient) %>% 
+#   summarize(m = mean(rmse),
+#             q.lower = quantile(rmse, .025),
+#             q.upper = quantile(rmse, .975)) %>% 
+#   ggplot(aes(x = coefficient, y = m, shape = estimator,
+#              ymin = q.lower, ymax = q.upper)) +
+#   geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+#   facet_wrap(~id) +
+#   scale_y_continuous("RMSE") +
+#   theme_poster
+# ggsave("rmse_smfx.png", width = 10.25, height = 4)
 
 # Power / Type I
 temp.p <- bind_rows(noBias = res.nobias, 
@@ -228,8 +241,9 @@ temp.p <- bind_rows(noBias = res.nobias,
   select(id,
          mod.p1:mod.p3, 
          joint.add.p1:joint.add.p3, 
-         joint.inter.p1:joint.inter.p3) %>% 
-  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+         joint.inter.p1:joint.inter.p3,
+         sel.p1:sel.p3) %>% 
+  gather(key = "key", value = "value", mod.p1:sel.p3) %>% 
   separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
            # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
            fill = "left") %>% 
@@ -242,8 +256,9 @@ temp.p2 <- bind_rows(noBias = res.smallfx.nobias,
   select(id,
          mod.p1:mod.p3, 
          joint.add.p1:joint.add.p3, 
-         joint.inter.p1:joint.inter.p3) %>% 
-  gather(key = "key", value = "value", mod.p1:joint.inter.p3) %>% 
+         joint.inter.p1:joint.inter.p3,
+         sel.b1:sel.b3) %>% 
+  gather(key = "key", value = "value", mod.p1:sel.p3) %>% 
   separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
            # need fill = "left" to deal with shorter "mod.p1" vs "joint.add.p1"
            fill = "left") %>% 

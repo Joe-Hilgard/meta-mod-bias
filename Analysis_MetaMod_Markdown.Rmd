@@ -20,24 +20,19 @@ library(metafor)
 library(forcats)
 library(weightr)
 source("sim-studies/sim-studies.R", chdir=TRUE)
-source("2_analysis.R")
+#source("2_analysis.R")
 
 # Load simulated data
 load("sim.Rdata")
 ```
 Todo:
 
-- Read this paper -- it's an interesting one that will teach you about p-curve and the Hedges-Vevea selection model.
-
-- Think of a better way to plot these things, especially power. Maybe we put estimator on a facet_wrap or facet_grid so that readers can see overplotting of bias vs nobias.
 
 - Writing: Please start writing up the results section -- use the plots as well as the data frames underlying the plots.
 
 - For each bias scenario:
     for each estimator:
        consider ME, RMSE, Type I and Type II error.
-
-- Discussion: Try to draw some broader lessons. Which estimators should be used? How badly does pub bias screw up moderator analysis? Should reviewers ask for PET + moderation? Hedges + moderation?
 
 
 ##**Meta Analysis**
@@ -147,6 +142,8 @@ summarize_run(res.smallfx.hiPB)
 # explore different values of vector d
 # check distribution of N -- is it appropriate?
 #hist(meta1$N)
+# hist(meta1$N)
+
 # implement PET-RMA model
 delta <- c(0, .3, .6)
 mySummary <- function(x) {
@@ -162,7 +159,9 @@ mySummary <- function(x) {
       me.b1.inter = mean(joint.inter.b1 - delta[1]),
       me.b2.inter = mean(joint.inter.b2 - delta[2]),
       me.b3.inter = mean(joint.inter.b3 - delta[3]),
-      # TODO: Add sel model outcomes too
+      me.b1.sel = mean(sel.b1 - delta[1]),
+      me.b2.sel = mean(sel.b2 - delta[2]),
+      me.b3.sel = mean(sel.b3 - delta[3]),
       # RMSE        
       rmse.b1 = sqrt(mean((mod.obs.b1 - delta[1])^2)),
       rmse.b2 = sqrt(mean((mod.obs.b2 - delta[2])^2)),
@@ -172,7 +171,10 @@ mySummary <- function(x) {
       rmse.b3.add = sqrt(mean((joint.add.b3 - delta[3])^2)),
       rmse.b1.inter = sqrt(mean((joint.inter.b1 - delta[1])^2)),
       rmse.b2.inter = sqrt(mean((joint.inter.b2 - delta[2])^2)),
-      rmse.b3.inter = sqrt(mean((joint.inter.b3 - delta[3])^2)),          
+      rmse.b3.inter = sqrt(mean((joint.inter.b3 - delta[3])^2)),
+      rmse.b1.sel = sqrt(mean((sel.b1 - delta[1])^2)),
+      rmse.b2.sel = sqrt(mean((sel.b2 - delta[2])^2)),
+      rmse.b3.sel = sqrt(mean((sel.b3 - delta[3])^2)),
       # Power / Type I  
       pow.b1 = mean(mod.p1 < .05),
       pow.b2 = mean(mod.p2 < .05),
@@ -182,7 +184,10 @@ mySummary <- function(x) {
       pow.b3.add = mean(joint.add.p3 < .05),
       pow.b1.inter = mean(joint.inter.p1 < .05),
       pow.b2.inter = mean(joint.inter.p2 < .05),
-      pow.b3.inter = mean(joint.inter.p3 < .05)
+      pow.b3.inter = mean(joint.inter.p3 < .05),
+      pow.b1.sel = mean(sel.p1 < .05),
+      pow.b2.sel = mean(sel.p2 < .05),
+      pow.b3.sel = mean(sel.p3 < .05)
     )
 }
 
@@ -193,61 +198,47 @@ final <- bind_rows(medFX_noBias = mySummary(res.nobias),
           .id = "id")
 write.csv(final, "final_output.csv", row.names = F)
 
-```
 
-**Theme set-up**
-```{r, echo=FALSE}
-# Plotting for poster ----
-theme_poster <- theme(text = element_text(size = 12),
-                      legend.position = "none")
+#the sel.b need something infront like hedg.sel.b but need to changed in genderate???????????????????????????????????????
 
-temp <- 
-  # no bias dataset vs medium pub bias + hi QRP dataset
-  bind_rows(noBias = res.nobias, 
-            bias = res.medPB.hiQRP, 
-            .id = "id") %>% 
-  # Select desired columns: model coefficients
+
+temp <- bind_rows(noBias = res.nobias, 
+                  bias = res.medPB.hiQRP, 
+                  .id = "id") %>% 
   select(id,
          mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
          joint.inter.b1:joint.inter.b3,
          sel.b1:sel.b3) %>% 
-  # gather values into one column; label rows by estimator and coefficient
-  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3, sel.b1:sel.b3) %>% 
-  # Note use of backslash to escape the period b/c we literally mean a period.
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
-           # have to kludge this b/c it's "sel.b1" and not "mod.sel.b1"
-           fill = "left") %>% 
+  gather(key = "key", value = "value", mod.obs.b1:sel.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
   # augment with true values & fix factor order
   mutate(delta = ifelse(coefficient == "b1", 0,
                         ifelse(coefficient == "b2", 0.3, 0.6)),
          rmse = sqrt((value - delta)^2),
          id = fct_relevel(id, c("noBias", "bias")),
-         estimator = fct_relevel(estimator, c("obs", "add", "inter")))
+         estimator = fct_relevel(estimator, c("obs", "add", "inter", "sel")))
 
-temp2 <- 
-  # small effects: no bias dataset vs medium pub bias + hi QRP dataset
-  bind_rows(noBias = res.smallfx.nobias, 
+temp2 <- bind_rows(noBias = res.smallfx.nobias, 
                   bias = res.smallfx.medPB.hiQRP, 
                   .id = "id") %>% 
-  # Select desired columns: model coefficients
   select(id,
          mod.obs.b1:mod.obs.b3, 
          joint.add.b1:joint.add.b3, 
          joint.inter.b1:joint.inter.b3,
          sel.b1:sel.b3) %>% 
-  # gather values into one column; label rows by estimator and coefficient
-  gather(key = "key", value = "value", mod.obs.b1:joint.inter.b3, sel.b1:sel.b3) %>% 
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
-           # have to kludge this b/c it's "sel.b1" and not "mod.sel.b1"
-           fill = "left") %>% 
-  # augment with true values & fix factor order
+  gather(key = "key", value = "value", mod.obs.b1:sel.b3) %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  # augment with true values
   mutate(delta = ifelse(coefficient == "b1", 0,
                         ifelse(coefficient == "b2", 0.2, 0.4)),
          rmse = sqrt((value - delta)^2),
          id = fct_relevel(id, c("noBias", "bias")),
-         estimator = fct_relevel(estimator, c("obs", "add", "inter")))
+         estimator = fct_relevel(estimator, c("obs", "add", "inter", "sel")))
+
+
 ```
+
 
 ##**Medium effects**
 
@@ -272,6 +263,7 @@ temp %>%
   geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
                   size = 1, position = position_dodge(width = .5)) +
   facet_grid(~id) +
+  scale_shape_manual(values = c(19, 17, 15, 18, 18, 18)) +
   scale_y_continuous("Estimate (d)",
                      breaks = c(-0.3, 0, 0.3, 0.6, 0.9)) 
 ggsave("me_bigfx.png", width = 5, height = 4)
@@ -282,17 +274,18 @@ ggsave("me_bigfx.png", width = 5, height = 4)
 ```{r, echo=FALSE}
 # plot RMSE
 #Medium effects
-temp %>% 
-  group_by(id, estimator, coefficient) %>% 
-  summarize(m = mean(rmse),
-            q.lower = quantile(rmse, .025),
-            q.upper = quantile(rmse, .975)) %>% 
-  ggplot(aes(x = coefficient, y = m, shape = estimator,
-             ymin = q.lower, ymax = q.upper)) +
-  geom_pointrange(size = 1, position = position_dodge(width = .5)) +
-  facet_wrap(~id) +
-  scale_y_continuous("RMSE") 
-ggsave("rmse_bigfx.png", width = 5, height = 4)
+#temp %>% 
+  # group_by(id, estimator, coefficient) %>% 
+  # summarize(m = mean(rmse, na.rm=T),
+  #           q.lower = quantile(rmse, .025),
+  #           q.upper = quantile(rmse, .975)) %>% 
+  # ggplot(aes(x = coefficient, y = m, shape = estimator,
+  #            ymin = q.lower, ymax = q.upper)) +
+  # geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+  # facet_wrap(~id) +
+  # scale_y_continuous("RMSE") +
+#ggsave("rmse_bigfx.png", width = 10.25, height = 4)
+
 ```
 
 **Power/ Type I**
@@ -300,6 +293,9 @@ ggsave("rmse_bigfx.png", width = 5, height = 4)
 ```{r, echo=FALSE}
 # Power / Type I
 #Meduim effects
+
+#estimator on a facet_wrap or facet_grid
+
 temp.p <- 
   # make power/type I dataset comparing nobias & mediumbias + hiQRP
   bind_rows(noBias = res.nobias, 
@@ -316,6 +312,16 @@ temp.p <-
            fill = "left") %>% 
   mutate(id = fct_relevel(id, "noBias", "bias"),
          estimator = fct_relevel(estimator, c("mod", "add", "inter")))
+temp.p %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(sig = mean(value < .05)) %>% 
+  ggplot(aes(x = coefficient, y = sig, 
+             shape = interaction(estimator, id),
+             group = estimator)) +
+  geom_point(size = 5, position = position_dodge(width = .5)) +
+  scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
+  facet_wrap(~id)
+ggsave("nhst_bigfx.png", width = 6, height = 4)
 ```
 
 **Significance Rates**
@@ -327,11 +333,11 @@ temp.p %>%
   group_by(id, estimator, coefficient) %>% 
   summarize(sig = mean(value < .05, na.rm = T)) %>% 
   ggplot(aes(x = coefficient, y = sig, 
-             color = estimator,
+             shape = estimator,
              group = estimator)) +
   geom_point(size = 5, position = position_dodge(width = .8)) +
+  scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
-  #scale_shape_manual(values = c(16, 17, 15, 1, 2, 0))
 ggsave("nhst_bigfx.png", width = 5, height = 4)
 ```
 
@@ -358,6 +364,7 @@ temp2 %>%
   geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
                   size = 1, position = position_dodge(width = .5)) +
   facet_grid(~id) +
+  scale_shape_manual(values = c(19, 17, 15, 18, 18, 18)) +
   scale_y_continuous("Estimate (d)",
                      breaks = c(-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8))
 ggsave("me_smfx.png", width =5, height = 4)
@@ -369,17 +376,17 @@ ggsave("me_smfx.png", width =5, height = 4)
 ```{r, echo=FALSE}
 #plot RMSE
 #Small effects
-temp2 %>% 
-  group_by(id, estimator, coefficient) %>% 
-  summarize(m = mean(rmse),
-            q.lower = quantile(rmse, .025),
-            q.upper = quantile(rmse, .975)) %>% 
-  ggplot(aes(x = coefficient, y = m, shape = estimator,
-             ymin = q.lower, ymax = q.upper)) +
-  geom_pointrange(size = 1, position = position_dodge(width = .5)) +
-  facet_wrap(~id) +
-  scale_y_continuous("RMSE")
-ggsave("rmse_smfx.png", width = 5, height = 4)
+# temp2 %>% 
+#   group_by(id, estimator, coefficient) %>% 
+#   summarize(m = mean(rmse),
+#             q.lower = quantile(rmse, .025),
+#             q.upper = quantile(rmse, .975)) %>% 
+#   ggplot(aes(x = coefficient, y = m, shape = estimator,
+#              ymin = q.lower, ymax = q.upper)) +
+#   geom_pointrange(size = 2, position = position_dodge(width = .5)) +
+#   facet_wrap(~id) +
+#   scale_y_continuous("RMSE") +
+# ggsave("rmse_smfx.png", width = 10.25, height = 4)
 ```
 
 
@@ -402,6 +409,16 @@ temp.p2 <- bind_rows(noBias = res.smallfx.nobias,
            fill = "left") %>% 
   mutate(id = fct_relevel(id, "noBias", "bias"),
          estimator = fct_relevel(estimator, c("mod", "add", "inter")))
+temp.p2 %>% 
+  group_by(id, estimator, coefficient) %>% 
+  summarize(sig = mean(value < .05)) %>% 
+  ggplot(aes(x = coefficient, y = sig, 
+             shape = interaction(estimator, id),
+             group = estimator)) +
+  geom_point(size = 5, position = position_dodge(width = .5)) +
+  scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
+  facet_wrap(~id)
+ggsave("nhst_smfx.png", width = 6, height = 4)
 ```
 
 **Significance Rates**
@@ -413,9 +430,11 @@ temp.p2 %>%
   group_by(id, estimator, coefficient) %>% 
   summarize(sig = mean(value < .05, na.rm = T)) %>% 
   ggplot(aes(x = coefficient, y = sig, 
-             color = interaction(estimator, id),
+              shape = estimator,
              group = estimator)) +
-  geom_point(size = 5, position = position_dodge(width = .5)) +
+  geom_point(size = 5, position = position_dodge(width = .8)) +
+  scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
+  facet_wrap(~id)
 ggsave("nhst_smfx.png", width = 5, height = 4)
 ```
 
