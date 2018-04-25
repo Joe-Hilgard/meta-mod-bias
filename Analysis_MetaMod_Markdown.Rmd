@@ -211,7 +211,8 @@ temp <- bind_rows(noBias = res.nobias,
          joint.inter.b1:joint.inter.b3,
          sel.b1:sel.b3) %>% 
   gather(key = "key", value = "value", mod.obs.b1:sel.b3) %>% 
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           fill = "left") %>% 
   # augment with true values & fix factor order
   mutate(delta = ifelse(coefficient == "b1", 0,
                         ifelse(coefficient == "b2", 0.3, 0.6)),
@@ -228,7 +229,8 @@ temp2 <- bind_rows(noBias = res.smallfx.nobias,
          joint.inter.b1:joint.inter.b3,
          sel.b1:sel.b3) %>% 
   gather(key = "key", value = "value", mod.obs.b1:sel.b3) %>% 
-  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.") %>% 
+  separate(key, into = c("junk", "estimator", "coefficient"), sep = "\\.",
+           fill = "left") %>% 
   # augment with true values
   mutate(delta = ifelse(coefficient == "b1", 0,
                         ifelse(coefficient == "b2", 0.2, 0.4)),
@@ -275,17 +277,17 @@ ggsave("me_bigfx.png", width = 5, height = 4)
 ```{r, echo=FALSE}
 # plot RMSE
 #Medium effects
-#temp %>% 
-  # group_by(id, estimator, coefficient) %>% 
-  # summarize(m = mean(rmse, na.rm=T),
-  #           q.lower = quantile(rmse, .025),
-  #           q.upper = quantile(rmse, .975)) %>% 
-  # ggplot(aes(x = coefficient, y = m, shape = estimator,
-  #            ymin = q.lower, ymax = q.upper)) +
-  # geom_pointrange(size = 2, position = position_dodge(width = .5)) +
-  # facet_wrap(~id) +
-  # scale_y_continuous("RMSE") +
-#ggsave("rmse_bigfx.png", width = 10.25, height = 4)
+temp %>%
+group_by(id, estimator, coefficient) %>%
+summarize(m = mean(rmse, na.rm=T),
+          q.lower = quantile(rmse, .025),
+          q.upper = quantile(rmse, .975)) %>%
+ggplot(aes(x = coefficient, y = m, shape = estimator,
+           ymin = q.lower, ymax = q.upper)) +
+geom_pointrange(position = position_dodge(width = .5)) +
+facet_wrap(~id) +
+scale_y_continuous("RMSE") +
+ggsave("rmse_bigfx.png", width = 10.25, height = 4)
 
 ```
 
@@ -315,11 +317,11 @@ temp.p <-
          estimator = fct_relevel(estimator, c("mod", "add", "inter")))
 temp.p %>% 
   group_by(id, estimator, coefficient) %>% 
-  summarize(sig = mean(value < .05)) %>% 
+  summarize(sig = mean(value < .05, na.rm = T)) %>% 
   ggplot(aes(x = coefficient, y = sig, 
              shape = interaction(estimator, id),
              group = estimator)) +
-  geom_point(size = 5, position = position_dodge(width = .5)) +
+  geom_point(position = position_dodge(width = .5)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_bigfx.png", width = 6, height = 4)
@@ -336,7 +338,7 @@ temp.p %>%
   ggplot(aes(x = coefficient, y = sig, 
              shape = estimator,
              group = estimator)) +
-  geom_point(size = 5, position = position_dodge(width = .8)) +
+  geom_point(position = position_dodge(width = .8)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_bigfx.png", width = 5, height = 4)
@@ -357,7 +359,7 @@ Again, PET-RMA does not fix the biases and can inflict further loss of efficienc
 #Small effects
 temp2 %>% 
   group_by(id, estimator, coefficient, delta) %>% 
-  summarize(m = mean(value),
+  summarize(m = mean(value, na.rm = T),
             q.lower = quantile(value, .025),
             q.upper = quantile(value, .975)) %>% 
   ggplot(aes(x = coefficient, y = m, shape = estimator)) +
@@ -377,17 +379,17 @@ ggsave("me_smfx.png", width =5, height = 4)
 ```{r, echo=FALSE}
 #plot RMSE
 #Small effects
-# temp2 %>% 
-#   group_by(id, estimator, coefficient) %>% 
-#   summarize(m = mean(rmse),
-#             q.lower = quantile(rmse, .025),
-#             q.upper = quantile(rmse, .975)) %>% 
-#   ggplot(aes(x = coefficient, y = m, shape = estimator,
-#              ymin = q.lower, ymax = q.upper)) +
-#   geom_pointrange(size = 2, position = position_dodge(width = .5)) +
-#   facet_wrap(~id) +
-#   scale_y_continuous("RMSE") +
-# ggsave("rmse_smfx.png", width = 10.25, height = 4)
+temp2 %>%
+  group_by(id, estimator, coefficient) %>%
+  summarize(m = mean(rmse),
+            q.lower = quantile(rmse, .025),
+            q.upper = quantile(rmse, .975)) %>%
+  ggplot(aes(x = coefficient, y = m, shape = estimator,
+             ymin = q.lower, ymax = q.upper)) +
+  geom_pointrange(position = position_dodge(width = .5)) +
+  facet_wrap(~id) +
+  scale_y_continuous("RMSE") +
+ggsave("rmse_smfx.png", width = 10.25, height = 4)
 ```
 
 
@@ -412,11 +414,11 @@ temp.p2 <- bind_rows(noBias = res.smallfx.nobias,
          estimator = fct_relevel(estimator, c("mod", "add", "inter")))
 temp.p2 %>% 
   group_by(id, estimator, coefficient) %>% 
-  summarize(sig = mean(value < .05)) %>% 
+  summarize(sig = mean(value < .05, na.rm = T)) %>% 
   ggplot(aes(x = coefficient, y = sig, 
              shape = interaction(estimator, id),
              group = estimator)) +
-  geom_point(size = 5, position = position_dodge(width = .5)) +
+  geom_point(position = position_dodge(width = .5)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_smfx.png", width = 6, height = 4)
