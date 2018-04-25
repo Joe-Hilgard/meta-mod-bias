@@ -76,7 +76,7 @@ PET adjustment for publication bias. PET slope may vary across groups.
 Results are presented in terms of bias, root mean squared error, and Type I/II
 error.
 
-**Set-up?**
+
 ```{r, echo=FALSE, include=FALSE}
 # summarize results of set 1 and set 2
 summarize_run(res.nobias) 
@@ -199,7 +199,7 @@ final <- bind_rows(medFX_noBias = mySummary(res.nobias),
 write.csv(final, "final_output.csv", row.names = F)
 
 
-#the sel.b need something infront like hedg.sel.b but need to changed in genderate???????????????????????????????????????
+#the sel.b need something infront like hedg.sel.b but need to changed in genderate????????????????????????????
 
 
 temp <- bind_rows(noBias = res.nobias, 
@@ -239,8 +239,9 @@ temp2 <- bind_rows(noBias = res.smallfx.nobias,
 
 ```
 
+##**Results**
 
-##**Medium effects**
+####**Medium effects**
 
 **Group Means: 0, 0.3, 0.6**
 
@@ -342,7 +343,7 @@ ggsave("nhst_bigfx.png", width = 5, height = 4)
 ```
 
 
-##**Small Effects**
+####**Small Effects**
 
 **Group means: 0, 0.2, 0.4**
 
