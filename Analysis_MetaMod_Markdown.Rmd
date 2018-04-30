@@ -263,7 +263,7 @@ temp %>%
   ggplot(aes(x = coefficient, y = m, shape = estimator)) +
   geom_hline(aes(yintercept = delta), col = 'grey25') +
   geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
-                  size = 1, position = position_dodge(width = .5)) +
+                  size = .5, position = position_dodge(width = .5)) +
   facet_grid(~id) +
   scale_shape_manual(values = c(19, 17, 15, 18, 18, 18)) +
   scale_y_continuous("Estimate (d)",
@@ -283,7 +283,7 @@ summarize(m = mean(rmse, na.rm=T),
           q.upper = quantile(rmse, .975)) %>%
 ggplot(aes(x = coefficient, y = m, shape = estimator,
            ymin = q.lower, ymax = q.upper)) +
-geom_pointrange(position = position_dodge(width = .5)) +
+geom_pointrange(size= .5, position = position_dodge(width = .5)) +
 facet_wrap(~id) +
 scale_y_continuous("RMSE") +
 ggsave("rmse_bigfx.png", width = 10.25, height = 4)
@@ -320,7 +320,7 @@ temp.p %>%
   ggplot(aes(x = coefficient, y = sig, 
              shape = interaction(estimator, id),
              group = estimator)) +
-  geom_point(position = position_dodge(width = .5)) +
+  geom_point(size = 3, position = position_dodge(width = .5)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_bigfx.png", width = 6, height = 4)
@@ -337,7 +337,7 @@ temp.p %>%
   ggplot(aes(x = coefficient, y = sig, 
              shape = estimator,
              group = estimator)) +
-  geom_point(position = position_dodge(width = .8)) +
+  geom_point(size = 3, position = position_dodge(width = .8)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_bigfx.png", width = 5, height = 4)
@@ -364,7 +364,7 @@ temp2 %>%
   ggplot(aes(x = coefficient, y = m, shape = estimator)) +
   geom_hline(aes(yintercept = delta), col = 'grey25') +
   geom_pointrange(aes(ymin = q.lower, ymax = q.upper),
-                  size = 1, position = position_dodge(width = .5)) +
+                  size = .5, position = position_dodge(width = .5)) +
   facet_grid(~id) +
   scale_shape_manual(values = c(19, 17, 15, 18, 18, 18)) +
   scale_y_continuous("Estimate (d)",
@@ -385,7 +385,7 @@ temp2 %>%
             q.upper = quantile(rmse, .975)) %>%
   ggplot(aes(x = coefficient, y = m, shape = estimator,
              ymin = q.lower, ymax = q.upper)) +
-  geom_pointrange(position = position_dodge(width = .5)) +
+  geom_pointrange(size = .5, position = position_dodge(width = .5)) +
   facet_wrap(~id) +
   scale_y_continuous("RMSE") +
 ggsave("rmse_smfx.png", width = 10.25, height = 4)
@@ -417,7 +417,7 @@ temp.p2 %>%
   ggplot(aes(x = coefficient, y = sig, 
              shape = interaction(estimator, id),
              group = estimator)) +
-  geom_point(position = position_dodge(width = .5)) +
+  geom_point(size = 3, position = position_dodge(width = .5)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_smfx.png", width = 6, height = 4)
@@ -434,7 +434,7 @@ temp.p2 %>%
   ggplot(aes(x = coefficient, y = sig, 
               shape = estimator,
              group = estimator)) +
-  geom_point(size = 5, position = position_dodge(width = .8)) +
+  geom_point(size = 3, position = position_dodge(width = .8)) +
   scale_shape_manual(values = c(19, 17, 15, 18, 1, 2, 0, 5)) +
   facet_wrap(~id)
 ggsave("nhst_smfx.png", width = 5, height = 4)
