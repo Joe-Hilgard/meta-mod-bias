@@ -33,6 +33,7 @@ Todo:
 - For each bias scenario:
     for each estimator:
        consider ME, RMSE, Type I and Type II error.
+- My advice: just talk about each metric (ME, RMSE, Type I, Power) in sequence, describing whether (1) there's a problem with the unadjusted estimator indicating that we need adjustments for pub bias, and (2) whether the adjustments make things any better, and if so, which ones work best.
 
 
 ##**Meta Analysis**
@@ -198,8 +199,6 @@ final <- bind_rows(medFX_noBias = mySummary(res.nobias),
           .id = "id")
 write.csv(final, "final_output.csv", row.names = F)
 
-
-#the sel.b need something infront like hedg.sel.b but need to changed in genderate????????????????????????????
 
 
 temp <- bind_rows(noBias = res.nobias, 
@@ -441,4 +440,53 @@ temp.p2 %>%
 ggsave("nhst_smfx.png", width = 5, height = 4)
 ```
 
+####**No publication bias**
 
+**Type I error rate.** 
+Under the null, all methods had appropriate Type I error rates, with no large differences between different methods. 
+
+
+**Power.** 
+For the medium effects, all models except the inter model had sufficient power. for an effect size of 0.3, the inter model only had power of around 20%. For an effect size of 0.6, the inter model had power of around 60%. Under small effects, the inter model preformed even worse, with a power of around 12% for a 0.2 effect size and around 35% for an effect size of 0.4. 
+
+
+**ME.** 
+All methods were generally unbiased. For medium effects, only for a true effect size of 0.6 was there any noticeable difference, here the inter model underestimated the true effect. Under the small effects, both the add and inter models underestimated a null effect. 
+
+In terms of *SE?*, all of the methods preformed relatively equally except for the inter model. The inter model had a large standard error across all effect sizes. 
+
+**RMSE.** 
+The obs and sel models had the lowest RMSE across all effect sizes. The add model preformed slightly worse when the null was true but not for effect sizes above 0.2. Overall, the inter model has the highest RMSE with the largest *SE* as well. 
+
+
+**95% CI coverage.** 
+
+
+
+####**Strong publication bias**
+
+**Type I error rates.** Under the null, only the sel model performed well. All other models had a type 1 error rate higher than 0.10. 
+
+
+**Power.** Across all effect sizes, all models except for the inter model preformed relatively equally with acceptable power (above 80%). Only under an effect size of 0.2 did the power drop for all models. Except for the inter model, the models had power of around 60% for an effect size of 0.2. Here, the add model appeared to have the most power. 
+
+**ME.** 
+Under the null, all methods performed poorly except the sel model which estimated the null correctly and had the smallest *SE*. The obs model overestimated the effect size to be around 0.25 and both the add and inter models underestimated the null effect. Once again the inter model had the largest *SE*.
+
+For a medium effect of 0.3, all models under estimated the effect except for the inter model which overestimated the effect. For a medium effect of 0.6 the sel model preformed the best, only sightly underestimating the model. The obs and add model both underestimated the effect and the inter overestimated the effect. 
+
+For a small effect of 0.2, again, all models underestimated the effect except for the inter model which overestimated the effect. For a small effect of 0.4 the sel model preformed the best, only slightly underestimating the model. The obs and add model both underestimated the effect and the inter overestimated the effect.
+
+**RMSE.** 
+Under the null, the sel model had the lowest RSME followed by the add model and the obs and inter models preforming the worst. 
+
+Across all of the effect sizes the sel model had the lowest RMSE. The obs and add models steadily had increasing RMSE as the true effect increased. The inter model's RMSE slightly improved as the effect size increased relative to the add and obs models; however, the inter model was never as low as the sel. 
+
+In terms of *SE*, all models had relatively equal *SE* across effect sizes with the exception of the inter model which had very large *SE* across all effect sizes. 
+
+**95% CI coverage.** 
+
+##**Conclusion**
+
+The sel model appears to perform the best across all scenarios and the inter model preforms the worst by far.
+ 
