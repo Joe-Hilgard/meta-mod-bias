@@ -35,6 +35,28 @@ Todo:
        consider ME, RMSE, Type I and Type II error.
 - My advice: just talk about each metric (ME, RMSE, Type I, Power) in sequence, describing whether (1) there's a problem with the unadjusted estimator indicating that we need adjustments for pub bias, and (2) whether the adjustments make things any better, and if so, which ones work best.
 
+Publication bias is harmful because it inflates effect sizes, making small effects look big and null effects look like something.
+
+In addition to these harms, publication bias may make it harder to detect moderators.
+In this simulation, we explore how publication bias may impair power to detect moderators.
+
+A number of adjustments for publication bias exist. However, not all of these are compatible with moderation analysis, and among those that are, their performance has not been thoroughly tested.
+
+
+P-curve and p-uniform, while popular in social psychology, do not allow for moderation analysis. That said, these methods are special cases of the more general technique of selection modeling (Hedges & Vevea? Vevea & Hedges?), which can accomodate moderators.
+
+Trim and fill does not allow for moderation analysis, and it's not a very good adjustment either.
+
+PET meta-regression attempts to partial out the effect of publication bias as a small-study effect. It fits a regression to the relationship between effect size and precision. The intercept, representing a hypothetical study with perfect precision, is interpreted as the bias-adjusted effect size.
+
+Stanley and Doucouliagos (2014) suggest that PET-PEESE meta-regression can be applied in a multiple regression format. They suggest simulataneously modeling the small-study effect with PET or PEESE and modeling variation according to the moderator.
+However, they do not elaborate on how to choose this model (should it be PET or PEESE?) and they do not use Monte Carlo simulation to examine its efficacy.
+
+One limitation of this approach might be that one fits a single small-study effect across all groups in the moderation analysis. This may be deleterious if some groups have no true effect and others have some true effect; they would be subject to different amounts of publication bias, and so may have different slopes. In this simulation, we try it both ways, fitting a single small-study slope across all groups and modeling a small-study slope that varies by group.
+
+It is not clear whether one should attempt a PEESE-RMA.
+
+Relevant citation is Stanley & Doucouliagos 2014, "Meta-regression approximations to reduce publication selection bias", see their equation 10. They don't really elaborate on it or test its efficiency or bias -- they just say "throw the moderator on in".
 
 ##**Meta Analysis**
 
@@ -147,6 +169,8 @@ summarize_run(res.smallfx.hiPB)
 
 # implement PET-RMA model
 delta <- c(0, .3, .6)
+# This function goes through all the estimators and 
+# Calculates their performance (ME, RMSE, TypeI/TypeII)
 mySummary <- function(x) {
   x %>% 
     summarize(
@@ -192,6 +216,7 @@ mySummary <- function(x) {
     )
 }
 
+# Make a final summary table and write it to CSV
 final <- bind_rows(medFX_noBias = mySummary(res.nobias),
           #medFX_medPBhiQRP = mySummary(res.medPB.hiQRP),
           smallFX_noBias = mySummary(res.smallfx.nobias),
@@ -200,7 +225,7 @@ final <- bind_rows(medFX_noBias = mySummary(res.nobias),
 write.csv(final, "final_output.csv", row.names = F)
 
 
-
+# TODO: DOCUMENT THIS. Make temp objects for plotting??
 temp <- bind_rows(noBias = res.nobias, 
                   bias = res.medPB.hiQRP, 
                   .id = "id") %>% 
@@ -236,8 +261,6 @@ temp2 <- bind_rows(noBias = res.smallfx.nobias,
          rmse = sqrt((value - delta)^2),
          id = fct_relevel(id, c("noBias", "bias")),
          estimator = fct_relevel(estimator, c("obs", "add", "inter", "sel")))
-
-
 ```
 
 ##**Results**
