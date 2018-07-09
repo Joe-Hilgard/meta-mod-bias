@@ -35,57 +35,42 @@ Todo:
        consider ME, RMSE, Type I and Type II error.
 - My advice: just talk about each metric (ME, RMSE, Type I, Power) in sequence, describing whether (1) there's a problem with the unadjusted estimator indicating that we need adjustments for pub bias, and (2) whether the adjustments make things any better, and if so, which ones work best.
 
-Publication bias is harmful because it inflates effect sizes, making small effects look big and null effects look like something.
+It is widely understood that the selective publication of statistically significant results is hazardous to hypothesis testing, as it leads to overestimation of the mean effect size. Less understood, however, is whether selective publication influences estimates of meta-moderation, that is, study attributes associated with changes in the true effect size. Insofar as publication bias may influence moderator estimates, it is not clear how to correct those moderator estimates. Although there are a number of statistical procedures and models that attempt to adjust for publication bias, it is not clear how well moderator parameters are recovered following these adjustments.
 
-In addition to these harms, publication bias may make it harder to detect moderators.
-In this simulation, we explore how publication bias may impair power to detect moderators.
+To address this question, we simulate research literatures in which the true effect varies across studies as a function of some study-level moderator. We then simulate different degrees of selection bias and p-hacking. Following this, we observe how estimates of the moderator parameters have been altered by selection bias and p-hacking. Finally, we evaluate a variety of adjustments for publication bias for their ability to recover the moderation parameter.
 
+# What is meta-moderation
+# What is publication bias
+# What adjustments are available
 A number of adjustments for publication bias exist. However, not all of these are compatible with moderation analysis, and among those that are, their performance has not been thoroughly tested.
 
+Selection models attempt to estimate the true effect through modeling the probability of publication of non-significant results (Hedges & Vevea? Vevea & Hedges?). An R package to fit these models is available, and one can specify moderators in this analysis. One simply specifies a "mods" argument in the weightr::weightfunct() function (Coburn & Vevea, 2017). 
+P-curve and p-uniform are simpler selection models. They assume that non-significant results are never published, and if any are published, they discard them anyway. These techniques, while popular in social psychology, do not allow for moderation analysis. 
 
-P-curve and p-uniform, while popular in social psychology, do not allow for moderation analysis. That said, these methods are special cases of the more general technique of selection modeling (Hedges & Vevea? Vevea & Hedges?), which can accomodate moderators.
+Trim and fill is a popular adjustment for publication bias that attempts to impute missing studies through inspection of the funnel plot. Although it is popular in psychology and easy to use in point-and-click meta-analysis software, it is not very effective in adjusting for moderate to serious bias (Carter et al. ...). Additionally, trim and fill does not allow for moderation analysis.
 
-Trim and fill does not allow for moderation analysis, and it's not a very good adjustment either.
+PET meta-regression attempts to partial out the effect of publication bias as a small-study effect. It fits a regression to the relationship between effect size and the standard error. The intercept, representing a hypothetical study with a standard error of zero, is interpreted as the bias-adjusted effect size.
+This approach has the weakness of underestimating true effects.
 
-PET meta-regression attempts to partial out the effect of publication bias as a small-study effect. It fits a regression to the relationship between effect size and precision. The intercept, representing a hypothetical study with perfect precision, is interpreted as the bias-adjusted effect size.
+PEESE meta-regression similarly attempts to partial out the effect of publication bias as a small-study effect, but instead of the standard error, it uses the variance. This models publication bias as a quadratic effect, stronger among small studies and weaker among large studies. 
+This approach has the weakness of overestimating null effects.
 
-Stanley and Doucouliagos (2014) suggest that PET-PEESE meta-regression can be applied in a multiple regression format. They suggest simulataneously modeling the small-study effect with PET or PEESE and modeling variation according to the moderator.
-However, they do not elaborate on how to choose this model (should it be PET or PEESE?) and they do not use Monte Carlo simulation to examine its efficacy.
+Stanley and Doucouliagos (2014, equation 10) suggest that PET-PEESE meta-regression can be applied in a multiple regression format. They suggest a multiple regression model in which the standard error or variance and the moderator are both predictors of the effect size. This approach simultaneously models publication bias (via PET or PEESE, depending on the use of standard error or variance) and the moderator.
+
+It is still unclear how best to apply this approach, or how effective it is. One has to choose between PET and PEESE in the moderation model; no guideline has been offered. In offering this model, Stanley and Doucouliagos do not use Monte Carlo simulation to evaluate its efficacy. This multiple regression approach may be effective, or it may have some unacceptable bias or variability in practical applications.
 
 One limitation of this approach might be that one fits a single small-study effect across all groups in the moderation analysis. This may be deleterious if some groups have no true effect and others have some true effect; they would be subject to different amounts of publication bias, and so may have different slopes. In this simulation, we try it both ways, fitting a single small-study slope across all groups and modeling a small-study slope that varies by group.
 
-It is not clear whether one should attempt a PEESE-RMA.
+# Method
+Monte Carlo simulation was used to test the bias and efficiency of moderator analysis across biasing scenarios and adjustments for bias. 
 
-Relevant citation is Stanley & Doucouliagos 2014, "Meta-regression approximations to reduce publication selection bias", see their equation 10. They don't really elaborate on it or test its efficiency or bias -- they just say "throw the moderator on in".
+Data were simulated according to two scenarios. In the "medium effects" scenario, studies had true effects of 0, 0.3, or 0.6, depending on their level of the moderator. In the "small effects" scenario, studies had true effects of 0, 0.2, or 0.4, depending on their level of the moderator. 
 
-##**Meta Analysis**
+Two levels of bias were implemented. In one condition, there was no publication bias or p-hacking. In the other, a nonsignificant result had only a 20% chance of publication. Additionally, 50% of studies involved aggressive p-hacking, and a further 40% used moderate p-hacking.
+[TODO: define these p-hacking algorithms]
+Studies were simulated until each moderator level had 20 studies. This avoids confounding the effects of publication bias with the effects of reduced number of studies.
 
-This simulation study tests:
-
-1. How publication bias affects ability to detect moderators in meta-analysis
-
-2. Whether adjustments for publication bias may improve or impair detection
-of moderators, given publication bias.
-
-Data are simulated according to two scenarios:
-
-• Medium effects: Studies have true effects of 0, 0.3, or 0.6
-
-• Small effects: Studies have true effects of 0, 0.2, or 0.4
-
-• Data are then subjected to publication bias and QRPs
-
-• No bias: All study results are reported
-
-• Biased: Only 20% of of nonsignificant results are published.
-50% of studies involve aggressive p-hacking,
-40% use moderate p-hacking.
-
-• Number of studies per group is fixed to k = 20
-
-• Studies have sample size of minimum 20/cell, maximum 200/cell, average
-50/cell.
-
+Studies were simulated with a sample size of minimum 20/cell, maximum 200/cell, average 50/cell.
 ##**Analysis**
 
 Naïve analysis: Meta-analysis tests the moderator effect without adjustment
