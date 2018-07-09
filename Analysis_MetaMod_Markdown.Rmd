@@ -67,22 +67,23 @@ Monte Carlo simulation was used to test the bias and efficiency of moderator ana
 Data were simulated according to two scenarios. In the "medium effects" scenario, studies had true effects of 0, 0.3, or 0.6, depending on their level of the moderator. In the "small effects" scenario, studies had true effects of 0, 0.2, or 0.4, depending on their level of the moderator. 
 
 Two levels of bias were implemented. In one condition, there was no publication bias or p-hacking. In the other, a nonsignificant result had only a 20% chance of publication. Additionally, 50% of studies involved aggressive p-hacking, and a further 40% used moderate p-hacking.
+[TODO: define the publication bias more accurately]
 [TODO: define these p-hacking algorithms]
 Studies were simulated until each moderator level had 20 studies. This avoids confounding the effects of publication bias with the effects of reduced number of studies.
 
 Studies were simulated with a sample size of minimum 20/cell, maximum 200/cell, average 50/cell.
 ##**Analysis**
 
-Naïve analysis: Meta-analysis tests the moderator effect without adjustment
-for publication bias
+Naïve analysis: Meta-analysis tests the moderator effect without adjustment for publication bias. This is implemented via the metafor::rma() function (CITE Veichtbauer).
 
-WLS-MRA (single slope): Meta-analysis tests the moderator effect after PET
-adjustment for publication bias. PET slope is fixed across groups.
+WLS-MRA (single slope): Meta-analysis tests the moderator effect after PET adjustment for publication bias. PET slope is fixed across groups. This is implemented via the metafor::rma() function.
 
-WLS-MRA (variable slope): Meta-analysis tests the moderator effect after
-PET adjustment for publication bias. PET slope may vary across groups.
-Results are presented in terms of bias, root mean squared error, and Type I/II
-error.
+WLS-MRA (variable slope): Meta-analysis tests the moderator effect after PET adjustment for publication bias. The PET slope is allowed to vary across groups. This is implemented via the metafor::rma() function.
+
+Selection modeling: 
+This is implemented via the weightr::weightfunct() function (Coburn & Vevea, CITATION NEEDED). We modeled a single publication bias cutpoint at *p* = .05. The resulting mismatch between the selection model and the true publication model is deliberately chosen to emulate probable model misspecification in real-world application.
+
+Results are presented in terms of bias, root mean squared error, and Type I/II error.
 
 
 ```{r, echo=FALSE, include=FALSE}
