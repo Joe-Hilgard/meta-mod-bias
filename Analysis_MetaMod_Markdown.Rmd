@@ -1,13 +1,44 @@
 ---
-title: "Analysis_MetaMod_Markdown"
-author: "Olivia Cody"
-date: "4/12/2018"
-output:
-  html_document: default
-  pdf_document: default
+title             : "Estimating largest plausible effect sizes with maximal positive controls: Plausibility of Hasan et al. (2013)"
+shorttitle        : "Estimating largest plausible effect sizes with maximal positive controls"
+
+author: 
+  - name          : "Joseph Hilgard"
+    affiliation   : "1"
+    corresponding : yes
+    address       : "DeGarmo Hall Room 435, Campus Box 4620, Normal, IL 61790-4620"
+    email         : "jhilgard@gmail.com"
+    
+  - name          : "Olivia Cody"
+    affiliation   : "1"
+
+affiliation:
+  - id            : "1"
+    institution   : "Illinois State University"
+
+authornote: Department of Psychology, Illinois State University
+
+abstract: Publication bias, the selective publication of statistically-significant or hypothesis-consistent study results, is widely understood to cause overestimation of the true effect size. Less well understood is how this bias influences the results of meta-regression analysis. Additionally, statistical procedures are often used to adjust for publication bias, but these are not commonly used in meta-regression, and little is known about their efficacy. Here we present a simulation study exploring the effects of publication bias on meta-regression. We find that publication bias leads to underestimation of meta-regression parameters and that adjustments for this bias are too inefficient to allow effective recovery of parameters. To ensure accurate results in meta-regression, researchers must first ensure the quality and completeness of the published literature.  
+
+keywords          : "meta-analysis, publication bias, meta-regression, bias adjustment"
+
+bibliography      : mybib.bib
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_docx
 ---
 
 ```{r setup, include=FALSE}
+library(papaja)
 knitr::opts_chunk$set(echo = TRUE)
 # Load packages and functions
 library(MASS)
@@ -25,15 +56,6 @@ source("sim-studies/sim-studies.R", chdir=TRUE)
 # Load simulated data
 load("sim.Rdata")
 ```
-Todo:
-
-
-- Writing: Please start writing up the results section -- use the plots as well as the data frames underlying the plots.
-
-- For each bias scenario:
-    for each estimator:
-       consider ME, RMSE, Type I and Type II error.
-- My advice: just talk about each metric (ME, RMSE, Type I, Power) in sequence, describing whether (1) there's a problem with the unadjusted estimator indicating that we need adjustments for pub bias, and (2) whether the adjustments make things any better, and if so, which ones work best.
 
 It is widely understood that the selective publication of statistically significant results is hazardous to hypothesis testing, as it leads to overestimation of the mean effect size. Less understood, however, is whether selective publication influences estimates of meta-moderation, that is, study attributes associated with changes in the true effect size. Insofar as publication bias may influence moderator estimates, it is not clear how to correct those moderator estimates. Although there are a number of statistical procedures and models that attempt to adjust for publication bias, it is not clear how well moderator parameters are recovered following these adjustments.
 
@@ -61,30 +83,43 @@ It is still unclear how best to apply this approach, or how effective it is. One
 
 One limitation of this approach might be that one fits a single small-study effect across all groups in the moderation analysis. This may be deleterious if some groups have no true effect and others have some true effect; they would be subject to different amounts of publication bias, and so may have different slopes. In this simulation, we try it both ways, fitting a single small-study slope across all groups and modeling a small-study slope that varies by group.
 
+<!--
+Todo:
+
+- Writing: Please start writing up the results section -- use the plots as well as the data frames underlying the plots.
+
+- For each bias scenario:
+    for each estimator:
+       consider ME, RMSE, Type I and Type II error.
+- My advice: just talk about each metric (ME, RMSE, Type I, Power) in sequence, describing whether (1) there's a problem with the unadjusted estimator indicating that we need adjustments for pub bias, and (2) whether the adjustments make things any better, and if so, which ones work best.
+-->
+
 # Method
 Monte Carlo simulation was used to test the bias and efficiency of moderator analysis across biasing scenarios and adjustments for bias. 
 
 Data were simulated according to two scenarios. In the "medium effects" scenario, studies had true effects of 0, 0.3, or 0.6, depending on their level of the moderator. In the "small effects" scenario, studies had true effects of 0, 0.2, or 0.4, depending on their level of the moderator. 
 
 Two levels of bias were implemented. In one condition, there was no publication bias or p-hacking. In the other, a nonsignificant result had only a 20% chance of publication. Additionally, 50% of studies involved aggressive p-hacking, and a further 40% used moderate p-hacking.
+
 [TODO: define the publication bias more accurately]
 [TODO: define these p-hacking algorithms]
-Studies were simulated until each moderator level had 20 studies. This avoids confounding the effects of publication bias with the effects of reduced number of studies.
+
+In the case that studies went unpublished, additional studies were simulated until each moderator level had 20 studies. This avoids confounding the effects of publication bias with the effects of reduced number of studies.
 
 Studies were simulated with a sample size of minimum 20/cell, maximum 200/cell, average 50/cell.
-##**Analysis**
+
+##Analysis
 
 Naïve analysis: Meta-analysis tests the moderator effect without adjustment for publication bias. This is implemented via the metafor::rma() function (CITE Veichtbauer).
 
-WLS-MRA (single slope): Meta-analysis tests the moderator effect after PET adjustment for publication bias. PET slope is fixed across groups. This is implemented via the metafor::rma() function.
+WLS-MRA (single slope): Meta-analysis tests the moderator effect after PET adjustment for publication bias. The PET slope is fixed across groups. This is implemented via the metafor::rma() function.
 
-WLS-MRA (variable slope): Meta-analysis tests the moderator effect after PET adjustment for publication bias. The PET slope is allowed to vary across groups. This is implemented via the metafor::rma() function.
+WLS-MRA (variable slope): Meta-analysis tests the moderator effect after PET adjustment for publication bias. The PET slope is allowed to vary across levels of the moderator. This is implemented via the metafor::rma() function.
 
 Selection modeling: 
-This is implemented via the weightr::weightfunct() function (Coburn & Vevea, CITATION NEEDED). We modeled a single publication bias cutpoint at *p* = .05. The resulting mismatch between the selection model and the true publication model is deliberately chosen to emulate probable model misspecification in real-world application.
+This is implemented via the weightr::weightfunct() function [@Coburn2019]. We modeled a single publication bias cutpoint at *p* = .05. The resulting mismatch between the selection model and the true publication model is deliberately chosen to emulate probable model misspecification in real-world application.
 
 Results are presented in terms of bias, root mean squared error, and Type I/II error.
-
 
 ```{r, echo=FALSE, include=FALSE}
 # summarize results of set 1 and set 2
@@ -249,11 +284,11 @@ temp2 <- bind_rows(noBias = res.smallfx.nobias,
          estimator = fct_relevel(estimator, c("obs", "add", "inter", "sel")))
 ```
 
-##**Results**
+##Results
 
-####**Medium effects**
+###Medium effects
 
-**Group Means: 0, 0.3, 0.6**
+Group Means: 0, 0.3, 0.6**
 
 Publication bias causes overestimation of δ = 0 and underestimation of mods.
 This underestimation causes increased Type II error rates for moderators.
@@ -449,7 +484,7 @@ temp.p2 %>%
 ggsave("nhst_smfx.png", width = 5, height = 4)
 ```
 
-####**No publication bias**
+###No publication bias
 
 **Type I error rate.** 
 Under the null, all methods had appropriate Type I error rates, with no large differences between different methods. 

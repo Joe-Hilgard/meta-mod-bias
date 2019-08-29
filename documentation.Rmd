@@ -3,8 +3,8 @@ title: "Meta-Analysis"
 author: "Olivia Cody"
 date: "1/30/2018"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 Next steps:

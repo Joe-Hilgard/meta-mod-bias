@@ -17,9 +17,11 @@ source("tidy_functions.R")
 
 # Tough choice between dataMA and simMA.
 # dataMA did the old approach of letting you force some percentage of studies to be stat sig.
-# simMA does the new approach of generating a bunch of studies, then publishing only some percentage of the nulls.
-# For simMA results to be noticeably biased or look anything like real-world data, you have to implement QRPs.
-# or really strong selection bias. And QRPs require a lot of cycles.
+# simMA does the new approach of generating a bunch of studies, 
+#    then publishing only some percentage of the nulls.
+# For simMA results to be noticeably biased or look anything like real-world data, 
+#    you have to implement QRPs or really strong selection bias. 
+#    And QRPs require a lot of cycles.
 
 # Maybe the most appropriate simulation settings are to use simMA with both QRPs and heavy pub bias.
 # That's probably what's going on in the real world.
@@ -51,9 +53,9 @@ source("tidy_functions.R")
 # summary(m1.egger)
 
 # For starters, we can ask:
-# By how much do we miss mean effect size of mean(d %*% k)
-# What is the power to detect d ~ id?
-# By how much does that power drop when we filter for sig?
+#     By how much do we miss mean effect size of mean(d %*% k)
+#     What is the power to detect d ~ id?
+#     By how much does that power drop when we filter for sig?
 
 # testing that passing of arguments is working right
 set.seed(1) # set seed 999 causes crash in res.medPB.hiQRP
