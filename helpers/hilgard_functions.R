@@ -17,6 +17,10 @@
 # censor: "none", "low", "medium", "high"
 # qrpEnv: "none", "medium", "high"
 
+# I'm concerned that arguments are not passing appropriately from modMA to simMA
+# Note that ExpFinU, used when qrpEnv == "none", does not use argument maxN. 
+# It does rtrunc(n=1, spec="nbinom", a=minN, b=Inf, size=2.3, mu=meanN), which has a long tail
+# maxN is only used by ExpFinB(expDataB())
 modMA <- function(k, delta, tau = 0,
                   empN = FALSE, maxN = 200, minN = 20, meanN = 50,
                   censor = "none", qrpEnv = "none", empN.boost = 0) {
@@ -73,34 +77,89 @@ modMA.post <- function(k, delta, tau = 0,
 #    see https://github.com/nicebread/meta-showdown/blob/master/MA-methods/7-Selection%20Models.R#L12
 
 inspectMA <- function(dataset) {
+  
   # basic model
   rmamod <- tryCatch(
     rma(yi = d, sei = se, data = dataset),
+    # if it fails, try again with different stepadj parameter
     error = function(e) rma(yi = d, sei = se, data = dataset,
-                            control = list(stepadj = .5))
-    )
+                            control = list(stepadj = .5)),
+    # if there's a warning message, run it anyway and report which function threw warning
+    warning = function(e) {
+      # report which function trhew the warning
+      warning(paste("Warning was triggered in rmamod:", e$message, sep = " "))
+      # run it anyway
+      return(rma(yi = d, sei = se, data = dataset))
+    }
+  )
   # test for moderator
   moderation.test <- tryCatch(
     rma(yi = d, sei = se, mods = ~id, data = dataset),
+    # if it fails, try again with different stepadj parameter
     error = function(e) rma(yi = d, sei = se, mods = ~id, data = dataset,
-                            control = list(stepadj = .5))
-    )
+                            control = list(stepadj = .5)),
+    # if there's a warning, run it anyway and report which function threw warning
+    warning = function(e) {
+      # report which function trhew the warning
+      warning(paste("Warning was triggered in moderation.test:", e$message, sep = " "))
+      # run it anyway
+      return(rma(yi = d, sei = se, mods = ~id, data = dataset))
+    }
+  )
+  
   # test for small-study effect
   egger.PET.test <- tryCatch(
     rma(yi = d, sei = se, mods = ~se, data = dataset),
+    # if it fails, try again with different stepadj parameter
     error = function(e) rma(yi = d, sei = se, mods = ~se, data = dataset,
-                            control = list(stepadj = .5))
-    )
-  # test for moderator after adjustment for small-study
-  joint.test.additive <- rma(yi = d, sei = se,
-                             mods = ~id + se, data = dataset,
-                             control = list(stepadj = .5))
-  joint.test.interactive <- rma(yi = d, sei = se,
-                                mods = ~id * se, data = dataset,
-                                control = list(stepadj = .5))
-  # TODO: test for moderator in hedges & vevea weight model
-  weightmodel <- with(dataset,
-                      weightfunct(d, v, mods = ~id))
+                            control = list(stepadj = .5)),
+    # if there's a warning, run it anyway and report which function threw warning
+    warning = function(e) {
+      # report which function trhew the warning
+      warning(paste("Warning was triggered in egger.PET.test:", e$message, sep = " "))
+      # run it anyway
+      return(rma(yi = d, sei = se, mods = ~se, data = dataset))
+    }
+  )
+  # test for moderator after PET adjustment
+  joint.test.additive <- tryCatch(
+    rma(yi = d, sei = se,mods = ~id + se, data = dataset,
+        control = list(stepadj = .5)),
+    # if there's a warning, run it anyway and report which function threw warning
+    warning = function(e) {
+      # report which function trhew the warning
+      warning(paste("Warning was triggered in joint.test.additive:", e$message, sep = " "))
+      # run it anyway
+      return(rma(yi = d, sei = se,mods = ~id + se, data = dataset,
+                 control = list(stepadj = .5)))
+    }
+  )
+  # test for moderator after PET adjustment per study type
+  joint.test.interactive <- tryCatch(
+    rma(yi = d, sei = se, mods = ~id * se, data = dataset,
+        control = list(stepadj = .5)),
+    # if there's a warning, run it anyway and report which function threw warning
+    warning = function(e) {
+      # report which function trhew the warning
+      warning(paste("Warning was triggered in joint.test.interactive:", e$message, sep = " "))
+      # run it anyway
+      return(rma(yi = d, sei = se, mods = ~id * se, data = dataset,
+                 control = list(stepadj = .5)))
+    }
+  )
+  
+  # test for moderator in hedges & vevea weight model
+  weightmodel <- tryCatch(
+    with(dataset, weightfunct(d, v, mods = ~id)),
+    # if there's a warning, run it anyway and report which function threw warning
+    warning = function(e) {
+      # report which function trhew the warning
+      warning(paste("Warning was triggered in weightmodel:", e$message, sep = " "))
+      # run it anyway
+      return(with(dataset, weightfunct(d, v, mods = ~id)))
+    }
+  )
+  
   # return test results
   res.basic <- summary(rmamod)
   res.mod <- summary(moderation.test)
@@ -163,7 +222,7 @@ inspectMA <- function(dataset) {
 }
 
 # function for performing modMA() and inspectMA() nSim number of times,
-# storing the output in a data frame.
+# then storing the output in a data frame.
 runStudy <- function(nSim, k, delta, tau = 0,
                      empN = 0, maxN = 200, minN = 20, meanN = 50,
                      censor = "none", qrpEnv = "none", empN.boost = 0) {
@@ -284,7 +343,7 @@ plotParamMeans <- function(data1, data2, name1, name2) {
 
 # convenient funnel in the style I like, centered at zero w/ significance bands
 myFunnel <- function(x) {
-  funnel(x,
+  metafor::funnel(x,
          refline=0, level=c(90, 95, 99), 
          shade = c("white", "grey75", "grey60"), back = "gray90")
 }

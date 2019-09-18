@@ -15,6 +15,9 @@ source("sim-studies/sim-studies.R", chdir=TRUE)
 source("helpers/hilgard_functions.R")
 source("helpers/tidy_functions.R")
 
+# make room for storing warnings
+options(nwarnings = 10000)
+
 # Tough choice between dataMA and simMA.
 # dataMA did the old approach of letting you force some percentage of studies to be stat sig.
 # simMA does the new approach of generating a bunch of studies, 
@@ -65,7 +68,8 @@ testset <- modMA(k = 30, d = c(0, .3, .6))
 testset$id
 # check summary stats of sample size
 summary(testset$N) 
-# seems a bit high for social psych. also max N is over 200? Are arguments passing correctly?
+hist(testset$N)
+# seems a bit high for social psych, with max N exceeding 200 because we're not using QRPs yet
 # make funnels for each subgroup
 myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 1))
 myFunnel(rma(yi = d, sei = se, data = testset, subset = id == 2))
@@ -75,6 +79,9 @@ testset.med <- modMA(k = 30, d = c(0, .3, .6),
                      censor = "med")
 # check contrasts
 testset.med$id
+# check that N/study is comparable
+summary(testset.med$N)
+hist(testset.med$N)
 # make funnels for each subgroup
 myFunnel(rma(yi = d, sei = se, data = testset.med, subset = id == 1))
 myFunnel(rma(yi = d, sei = se, data = testset.med, subset = id == 2))
@@ -84,14 +91,20 @@ myFunnel(rma(yi = d, sei = se, data = testset.med, subset = id == 3))
 # TODO: It would also be smart to save the output of summarize_run to an object
 #       but maybe we work with the raw output objects for now
 
+
+
 # set 1 : no bias
 res.nobias <- runStudy(nSim = 1000, k = 20, d = c(0, .3, .6))
-res.nobias
+# res.nobias
+# summary(res.nobias) 
+# # I wonder what causes the warning:
+# # "In sqrt(solve(x[[2]]$hessian)) : NaNs produced"
 
 # set 2: publication bias, medium censoring
 res.medPB <- runStudy(nSim = 1000, k = 20, d = c(0, .3, .6), 
                                censor = "med")
-res.medPB # oh boy, is convergence gonna be a thing now?
+# res.medPB 
+# summary(res.medPB) #selection model seems to get NAs
 
 # set 3: subtler differences
 res.smallfx.nobias <- runStudy(nSim = 100, k = 20, d = c(0, .2, .4))
@@ -159,11 +172,3 @@ res.smallfx.medPB.hiQRP <- runStudy(nSim = 1000, k = 20, d = c(0, .2, .4),
 #          mod.p3 = mod.p.3)
 
 save.image("sim.RData")
-
-# TODO: Implement selection modeling
-# Without moderator
-with(testset,
-     weightfunct(effect = d, v = v))
-# With moderator
-with(testset,
-     weightfunct(effect = d, v = v, mods = ~id))

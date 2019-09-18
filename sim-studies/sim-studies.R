@@ -33,13 +33,13 @@ outlier=function(x,mean,sd){
 # empN.boost toggles an additional boost to sample size
 
 # results from an unbiased experiment 
-expFinU = function(delta, tau, empN = TRUE, meanN, minN, empN.boost=0){
+expFinU = function(delta, tau, empN = TRUE,  maxN, meanN, minN, empN.boost=0){
   
   #get the per-group sample size 
   if (empN==TRUE){
     n <- sample(perGrp$x,1) + empN.boost
   } else {
-    n <- rtrunc(n=1, spec="nbinom", a=minN, b=Inf, size=2.3, mu=meanN)
+    n <- rtrunc(n=1, spec="nbinom", a=minN, b=maxN, size=2.3, mu=meanN)
   }
   
   #generate two independent vectors of raw data 
@@ -328,6 +328,9 @@ analyB <- function(g1,g2,g3,g4,D,multDV,out,mod){
 #     expFinB     #     
 #==================
 
+# returns d,p,t,N,d_v,d_se,pwr,n1,n2,D
+# N seems to tend to be too high for maxN, meanN, minN arguments...
+
 # Produces results, a, from a p-hacked experiment.
 expFinB = function(delta, tau, empN, maxN, meanN, minN, strat, empN.boost=empN.boost){
   
@@ -336,7 +339,7 @@ expFinB = function(delta, tau, empN, maxN, meanN, minN, strat, empN.boost=empN.b
   
   # if QRP strategy is NONE
   if (strat=='none'){
-    a = expFinU(delta, tau, empN, meanN, minN, empN.boost=empN.boost)
+    a = expFinU(delta=delta, tau=tau, empN=empN, maxN=maxN, meanN=meanN, minN=minN, empN.boost=empN.boost)
   }
   
   #if QRP strategy is MODERATE
@@ -350,7 +353,7 @@ expFinB = function(delta, tau, empN, maxN, meanN, minN, strat, empN.boost=empN.b
     if (empN == TRUE){
       s <- sample(perGrp$x,1) + empN.boost
     }else{
-      s <- rtrunc(n=1, spec="nbinom", a=minN, b=Inf, size=2.3, mu=meanN)
+      s <- rtrunc(n=1, spec="nbinom", a=minN, b=maxN, size=2.3, mu=meanN)
     }
     
     s = round(s/2)
@@ -659,7 +662,7 @@ simMA <- function(k, delta, tau,
 		thisStudiesHackingStyle <- sample(x = c("none", "mod", "agg"), size=1, replace=TRUE, prob = c(noneP, modP, aggP))
 		
 		if (thisStudiesHackingStyle == "none") {
-      res <- expFinU(delta=delta, tau=tau, empN=empN, meanN=meanN, minN=minN, empN.boost=empN.boost)			
+      res <- expFinU(delta=delta, tau=tau, empN=empN, maxN=maxN, meanN=meanN, minN=minN, empN.boost=empN.boost)			
       res[11] = 0 #QRP style
 		} else if (thisStudiesHackingStyle == "mod") {
       res <- expFinB(delta=delta, tau=tau, empN=empN, maxN=maxN, meanN=meanN, minN=minN, strat="mod", empN.boost=empN.boost)			

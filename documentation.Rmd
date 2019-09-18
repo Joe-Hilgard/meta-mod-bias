@@ -7,9 +7,6 @@ output:
   pdf_document: default
 ---
 
-Next steps:
-- 
-
 
 ####*Techniques for detecting and adjusting bias*
 **Ways to detect bias**
@@ -33,7 +30,6 @@ library(truncdist)
 library(pwr)
 library(compiler)
 library(metafor)
-library(ggplot2)
 library(numDeriv)
 
 # load study-simulating functions
@@ -150,11 +146,6 @@ inspectMA <- function(dataset) {
 
 visualizeMA <- function(dataset)
 
-
-
-theme_poster <- theme(text = element_text(size = 32),
-                      legend.position = "none")
-
 temp <- bind_rows(noBias = res.nobias, 
                   bias = res.medPB.hiQRP, 
                   .id = "id") %>% 
@@ -200,7 +191,7 @@ temp %>%
   facet_grid(~id) +
   scale_y_continuous("Estimate (d)",
                      breaks = c(-0.3, 0, 0.3, 0.6, 0.9)) +
-  theme_poster
+  theme(text = element_text(size = 32), legend.position = "none")
 ggsave("me_bigfx.png", width = 10.25, height = 4)
 
 temp2 %>% 
@@ -215,7 +206,7 @@ temp2 %>%
   facet_grid(~id) +
   scale_y_continuous("Estimate (d)",
                      breaks = c(-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8)) +
-  theme_poster
+  theme(text = element_text(size = 32), legend.position = "none")
 ggsave("me_smfx.png", width = 10.25, height = 4)
 
 
@@ -230,7 +221,7 @@ temp %>%
   geom_pointrange(size = 2, position = position_dodge(width = .5)) +
   facet_wrap(~id) +
   scale_y_continuous("RMSE") +
-  theme_poster
+  theme(text = element_text(size = 32), legend.position = "none")
 ggsave("rmse_bigfx.png", width = 10.25, height = 4)
 
 temp2 %>% 
@@ -243,7 +234,7 @@ temp2 %>%
   geom_pointrange(size = 2, position = position_dodge(width = .5)) +
   facet_wrap(~id) +
   scale_y_continuous("RMSE") +
-  theme_poster
+  theme(text = element_text(size = 32), legend.position = "none")
 ggsave("rmse_smfx.png", width = 10.25, height = 4)
 
 # Power / Type I
@@ -283,7 +274,7 @@ temp.p %>%
              group = estimator)) +
   geom_point(size = 5, position = position_dodge(width = .5)) +
   scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
-  theme_poster
+  theme(text = element_text(size = 32), legend.position = "none")
 ggsave("nhst_bigfx.png", width = 6, height = 4)
 
 temp.p2 %>% 
@@ -294,7 +285,7 @@ temp.p2 %>%
              group = estimator)) +
   geom_point(size = 5, position = position_dodge(width = .5)) +
   scale_shape_manual(values = c(16, 17, 15, 1, 2, 0)) +
-  theme_poster
+  theme(text = element_text(size = 32), legend.position = "none")
 ggsave("nhst_smfx.png", width = 6, height = 4)
 
 # temp.p2 %>% 
@@ -361,7 +352,7 @@ tidy_psm <- function(x) {
 *delta* the true effect (or the average of the true effects if heterogeneity exists)
 *tau* the SD around the true effect
 *empN* a logical, whether to use the empirical per-group N distribution
-*maxN* the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
+*maxN* the max possible group size that could be created. This only comes into play when qrpEnv != "none". The maxN is generated and the function actually takes the subsample. *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
 *minN* the min of the truncated normal for sample size
 *meanN* the average of the truncated normal for sample size
 *selProp* the proportion of the sample affected by bias
@@ -484,30 +475,39 @@ funnel(qrpEnv1, level=c(90, 95, 99),
 funnel(empN.boost1, level=c(90, 95, 99),
         shade = c("white", "grey75", "grey60"), refline=0, main = "empN.boost1")
 
-QRP.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
+QRP.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                  maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
 QRPr = rma(yi = d, sei = se, data = QRP.data)
 
-sel.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
+sel.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                  maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
 selr = rma(yi = d, sei = se, data = sel.data)
 
-propB.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6, sel = 1)
+propB.data = dataMA(k = 10, meanD = 0, sigma = .002,
+                    maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6, sel = 1)
 
-cbdv.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
+cbdv.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                   maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
 cbdvr = rma(yi = d, sei = se, data = cbdv.data)
 
-multDV.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
+multDV.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                     maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
 multDVr = rma(yi = d, sei = se, data = multDV.data)
 
-out.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
+out.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                  maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
 outr = rma(yi = d, sei = se, data = out.data)
 
-mod.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
+mod.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                  maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
 modr = rma(yi = d, sei = se, data = mod.data)
 
-colLim.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
+colLim.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                     maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
 colLimr = rma(yi = d, sei = se, data = colLim.data)
 
-add.data = dataMA(k = 100, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
+add.data = dataMA(k = 100, meanD = 0, sigma = .002, 
+                  maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
 addr = rma(yi = d, sei = se, data = add.data)
 ```
 
@@ -523,6 +523,5 @@ ma5 = rma(yi = d, sei = se, data = dat.mod,
           mods = mod)
 summary(ma5)
 plot(ma5)
-
 ```
 
