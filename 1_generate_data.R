@@ -12,8 +12,8 @@ library(weightr)
 
 # load study-simulating functions
 source("sim-studies/sim-studies.R", chdir=TRUE)
-source("hilgard_functions.R")
-source("tidy_functions.R")
+source("helpers/hilgard_functions.R")
+source("helpers/tidy_functions.R")
 
 # Tough choice between dataMA and simMA.
 # dataMA did the old approach of letting you force some percentage of studies to be stat sig.

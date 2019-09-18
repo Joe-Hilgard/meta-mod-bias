@@ -11,7 +11,7 @@ library(metafor)
 library(forcats)
 library(weightr)
 source("sim-studies/sim-studies.R", chdir=TRUE)
-source("hilgard_functions.R")
+source("helpers/hilgard_functions.R")
 
 # Load simulated data
 load("sim.Rdata")
