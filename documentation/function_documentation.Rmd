@@ -1,0 +1,470 @@
+---
+title: "Meta-Analysis"
+author: "Olivia Cody"
+date: "1/30/2018"
+output: html_document
+---
+
+Next steps:
+- play with dataMA and its arguments (esp. biasing args like QPR, sel, and propB)
+   - may consult source code in SimStudies.R 
+   - make funnel plots and models until familiar with process
+- play with modMA and runStudy() 
+   - use different arguments and play wiht summarizing and graphing output
+   hint: use dplyr:summarize and ggplot2
+
+####*Techniques for detecting and adjusting bias*
+**Ways to detect bias**
+- Funnel plots
+- Forest plots?
+- Egger Test (looks at slope)
+
+**Ways to detect and adjust bias**
+- Trim and fill
+- PET (just looks at intercept) and PEESE
+- P-curve
+- P-uniform
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(MASS)
+library(tidyverse)
+library(truncnorm)
+library(truncdist)
+library(pwr)
+library(compiler)
+library(metafor)
+
+# load study-simulating functions
+source("sim-studies.R")
+```
+
+####*Code that does it all in one*
+```{r}
+
+# Function that runs dataMA three times + fake data
+modMA <- function(k, d, QRP, sel, propB) {
+  d1 <- dataMA(k = k, 
+               QRP = QRP, sel = sel, propB = propB, 
+               meanD = d[1], sigma = 0,
+               cbdv = .5, maxN = 200, minN = 20,
+               meanN = 50, sdN = 20,
+               multDV = 0, out = 0, mod = 0,
+               colLim = 0, add = 0, verbose = T)
+  d2 <- dataMA(k = k, 
+               QRP = QRP, sel = sel, propB = propB, 
+               meanD = d[2], sigma = 0,
+               cbdv = .5, maxN = 200, minN = 20,
+               meanN = 50, sdN = 20,
+               multDV = 0, out = 0, mod = 0,
+               colLim = 0, add = 0, verbose = T)
+  d3 <- dataMA(k = k, 
+               QRP = QRP, sel = sel, propB = propB, 
+               meanD = d[3], sigma = 0,
+               cbdv = .5, maxN = 200, minN = 20,
+               meanN = 50, sdN = 20,
+               multDV = 0, out = 0, mod = 0,
+               colLim = 0, add = 0, verbose = T)
+  return(bind_rows(d1, d2, d3, .id = "id"))
+}
+
+
+# function to analyze results of dataMA
+inspectMA <- function(dataset) {
+  # basic model
+  rmamod <- rma(yi = d, sei = se, data = dataset)
+  # test for moderator
+  moderation.test <- rma(yi = d, sei = se, 
+                         mods = ~id, data = dataset)
+  # test for small-study effect
+  egger.PET.test <- rma(yi = d, sei = se,
+                    mods = ~se, data = dataset)
+  # test for moderator after adjustment for small-study
+  joint.test.additive <- rma(yi = d, sei = se,
+                    mods = ~id + se, data = dataset)
+  joint.test.interactive <- rma(yi = d, sei = se,
+                             mods = ~id * se, data = dataset)
+  # not sure how to interpret these parameters in the interactive model
+  # test for moderator in hedges & vevea weight model
+  # return test results
+  out = data.frame(d.obs = summary(rmamod)$b[1],
+                    se.obs = summary(rmamod)$se[1],
+                    d.p = summary(rmamod)$pval[1],
+                    # Moderators
+                    # Note that .1 is the intercept, reference group
+                    mod.b.obs.1 = summary(moderation.test)$b[1],
+                    mod.b.obs.2 = summary(moderation.test)$b[2],
+                    mod.b.obs.3 = summary(moderation.test)$b[3],
+                    mod.p.1 = summary(moderation.test)$pval[1],
+                    mod.p.2 = summary(moderation.test)$pval[2],
+                    mod.p.3 = summary(moderation.test)$pval[3],
+                    # Egger / PET
+                    d.obs.pet = summary(egger.PET.test)$b[1],
+                    p.pet = summary(egger.PET.test)$pval[1],
+                    b.egger = summary(egger.PET.test)$b[2],
+                    p.egger = summary(egger.PET.test)$pval[2],
+                    # joint PET-RMA tests
+                    #Additive model 
+                    joint.add.b1 = summary(joint.test.additive)$b[1],
+                    joint.add.b2 = summary(joint.test.additive)$b[2],
+                    joint.add.b3 = summary(joint.test.additive)$b[3],
+                    joint.add.b.egger = summary(joint.test.additive)$b[4],
+                    joint.add.p1 = summary(joint.test.additive)$pval[1],
+                    joint.add.p2 = summary(joint.test.additive)$pval[2],
+                    joint.add.p3 = summary(joint.test.additive)$pval[3],
+                    joint.add.p.egger = summary(joint.test.additive)$pval[4],
+                    #Interactive model
+                    joint.inter.b1 = summary(joint.test.interactive)$b[1],
+                    joint.inter.b2 = summary(joint.test.interactive)$b[2],
+                    joint.inter.b3 = summary(joint.test.interactive)$b[3],
+                    joint.inter.b1.egger = summary(joint.test.interactive)$b[4],
+                    joint.inter.b2.egger = summary(joint.test.interactive)$b[5],
+                    joint.inter.b3.egger = summary(joint.test.interactive)$b[6],
+                    joint.inter.p1 = summary(joint.test.interactive)$pval[1],
+                    joint.inter.p2 = summary(joint.test.interactive)$pval[2],
+                    joint.inter.p3 = summary(joint.test.interactive)$pval[3],
+                    joint.inter.p1.egger = summary(joint.test.interactive)$pval[4],
+                    joint.inter.p2.egger = summary(joint.test.interactive)$pval[5],
+                    joint.inter.p3.egger = summary(joint.test.interactive)$pval[6]
+                    )
+  return(data.frame(out))
+  }
+
+# function to make various visuals of MA: (?)
+
+visualizeMA <- function(dataset){
+  visu.data = plot(dataset)
+  #output
+  return(visu.data)
+}
+
+
+# make example data set for testing & debugging
+set.seed(42069)
+meta1.data <- modMA(k = 20, d = c(0, .3, .6), 
+               sel = 1, propB = .70, QRP = 0)
+test = inspectMA(meta1.data)
+vistest = visualizeMA(meta1.data)
+View(meta1.data)
+
+#work space below:
+
+
+```
+
+####*Function output documentation*
+##**dataMA**
+*k* the number of studies in the MA
+*meanD* the true effect (or the average of the true effects if heterogeneity exists)
+*sigma* the SD around the true effect
+*maxN* the max possible group size that could be created (this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples)
+*minN* the min of the truncated normal for sample size
+*meanN* the mean of the truncated normal for sample size
+*sdN* the SD of the truncated normal for sample size
+*QRP* 1 if QRP/p-hacks are available, 0 otherwise
+*sel* 1 if publication bias selection exists, 0 otherwise
+*propB* the proportion of the sample affected by bias
+*cbdv* the correlation between the multiple DVs
+*multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
+*out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
+*mod* 1 if optional moderator as a hack, 0 otherwise | analyses after running the interaction with some moderator
+*colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
+*add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
+
+*d* effect size d
+*p* p value for the two group comparison
+*t* t value for the two group comparison
+*N* total N
+*v* variance for the effect size
+*se* standard error for the effect size
+*pow* power given the true effect for the two group comparison
+*n1* experimental group sample size
+*n2* control group sample size
+
+##**inspectMA** 
+*d.obs* estimated coefficents of the model
+*se.obs* standerd error of the estimate of the overall mean
+*d.p* if the observed effect sizes are significantly different?
+*mod.b.obs.#* estimated coefficents of the moderator (if dummy codes: difference between one group mean vs. comparison group mean; if contrast codes: difference between one group mean vs. grand average)
+*mod.p.#* significance value for the moderation test, significance indicates moderator coefficient unusual for chance
+*d.obs.pet* bias-adjusted PET estimate for delta
+*p.pet* significance value for the PET estimate, significance indicates bias-adjusted estimate larger than chance
+*b.egger* Egger coefficient for relationship between effect size and standard error
+*p.egger* significance value for the egger test, significance indicates small-study effects possibly caused by bias
+*joint.add.b#* PET-RMA (id+se) adjusted coefficients (grand mean & cell deviations OR cornerstone mean & cell deviations)
+*joint.add.b.egger* coefficient of predictor 'se'
+*joint.add.p#* significance value for coefficents for the PET-RMA (id+se) test, significance indicates significant bias-adjusted grand mean and/or differences between bias-adjusted subgroup means
+*joint.add.p.egger* significance value for the additive effect of the PET-RMA (id+se) test, significance indicates overall small-study effect
+*joint.inter.b#* PET-RMA (id*se) adjusted coefficients (grand mean & cell deviations OR cornerstone mean & cell deviations)
+*joint.inter.b#.egger* Egger slopes (grand slope & subgroup differences in slope OR cornerstone slope & subgroup differences in slope)
+*joint.inter.p#* significance value of the PET-RMA (id*se) adjusted estimates. Significance indicates moderation between bias-adjusted cell means.
+*joint.inter.p#.egger* significance value of the interaction for the PET-RMA (id*se) test, significance indicates overall small-study effect or subgroup differences in small-study effects
+
+
+####* r Package code*
+```{r}
+#Additional libraries:
+library("devtools")
+library("roxygen2")
+#See: https://hilaryparker.com/2014/04/29/writing-an-r-package-from-scratch/
+
+
+#Step 1: Create your package directory
+
+work_dir = "/Users/Olivia/Documents/GitHub/meta-mod-bias"
+setwd(work_dir)
+create("meta.bias")
+
+#If you look in your parent directory, in it you will have two folders and one file called DESCRIPTION. Need to edit the DESCRIPTION file to include all of your contact information, etc.
+
+
+#Step 2: Add functions
+#save funcitons as a "meta.bias.R" in the R directory 
+
+
+#Step 3: Add documentation
+
+#' A Meta-analysis Function
+#'
+#' This fucntion produces a dataset for meta-analysis. Applies both QRP and selection at a proportion specified by propB if sel and QRP are 1 not 0. 
+#' @param k the number of studies in the MA
+#' @param QRP 1 if QRP/p-hacks are available, 0 otherwise
+#' @param sel 1 if publication bias selection exists, 0 otherwise
+#' @param propB the proportion of the sample affected by bias
+#' @param meanD the true effect (or the average of the true effects if heterogeneity exists)
+#' @param sigma the SD around the true effect
+#' @param cbdv the correlation between the multiple DVs
+#' @param maxN the max possible group size that could be created *this needs to be set higher than what can actually be generated--it doesn't mean you get bigger samples
+#' @param minN the min of the truncated normal for sample size
+#' @param meanN the mean of the truncated normal for sample size
+#' @param sdN the SD of the truncated normal for sample size
+#' @param multDV 1 if multiple DVs as a hack, 0 otherwise
+#' @param out 1 if optional outlier removal as a hack, 0 otherwise
+#' @param mod 1 if optional moderator as a hack, 0 otherwise
+#' @param colLim number of times to try collecting more data
+#' @param add number to add to each group when collecting more data
+#' @param verbose Should informations be printed?
+#' dataMA()
+dataMA = source("sim-studies.R")
+
+
+#' A Meta-analysis Function
+#'
+#' This function analyzes the results of dataMA 
+#' @param Q this is fake and does nothing, need help knowing what to put
+#' inspectMA()
+inspectMA <- function(dataset) {
+  # basic model
+  rmamod <- rma(yi = d, sei = se, data = dataset)
+  # test for moderator
+  moderation.test <- rma(yi = d, sei = se, 
+                         mods = ~id, data = dataset)
+  # test for small-study effect
+  egger.PET.test <- rma(yi = d, sei = se,
+                    mods = ~se, data = dataset)
+  # test for moderator after adjustment for small-study
+  joint.test.additive <- rma(yi = d, sei = se,
+                    mods = ~id + se, data = dataset)
+  joint.test.interactive <- rma(yi = d, sei = se,
+                             mods = ~id * se, data = dataset)
+  # not sure how to interpret these parameters in the interactive model
+  # test for moderator in hedges & vevea weight model
+  # return test results
+  out = data.frame(d.obs = summary(rmamod)$b[1],
+                    se.obs = summary(rmamod)$se[1],
+                    d.p = summary(rmamod)$pval[1],
+                    # Moderators
+                    # Note that .1 is the intercept, reference group
+                    mod.b.obs.1 = summary(moderation.test)$b[1],
+                    mod.b.obs.2 = summary(moderation.test)$b[2],
+                    mod.b.obs.3 = summary(moderation.test)$b[3],
+                    mod.p.1 = summary(moderation.test)$pval[1],
+                    mod.p.2 = summary(moderation.test)$pval[2],
+                    mod.p.3 = summary(moderation.test)$pval[3],
+                    # Egger / PET
+                    d.obs.pet = summary(egger.PET.test)$b[1],
+                    p.pet = summary(egger.PET.test)$pval[1],
+                    b.egger = summary(egger.PET.test)$b[2],
+                    p.egger = summary(egger.PET.test)$pval[2],
+                    # joint PET-RMA tests
+                    #Additive model 
+                    joint.add.b1 = summary(joint.test.additive)$b[1],
+                    joint.add.b2 = summary(joint.test.additive)$b[2],
+                    joint.add.b3 = summary(joint.test.additive)$b[3],
+                    joint.add.b.egger = summary(joint.test.additive)$b[4],
+                    joint.add.p1 = summary(joint.test.additive)$pval[1],
+                    joint.add.p2 = summary(joint.test.additive)$pval[2],
+                    joint.add.p3 = summary(joint.test.additive)$pval[3],
+                    joint.add.p.egger = summary(joint.test.additive)$pval[4],
+                    #Interactive model
+                    joint.inter.b1 = summary(joint.test.interactive)$b[1],
+                    joint.inter.b2 = summary(joint.test.interactive)$b[2],
+                    joint.inter.b3 = summary(joint.test.interactive)$b[3],
+                    joint.inter.b.se = summary(joint.test.interactive)$b[4],
+                    joint.inter.b2.se = summary(joint.test.interactive)$b[5],
+                    joint.inter.b3.se = summary(joint.test.interactive)$b[6],
+                    joint.inter.p1 = summary(joint.test.interactive)$pval[1],
+                    joint.inter.p2 = summary(joint.test.interactive)$pval[2],
+                    joint.inter.p3 = summary(joint.test.interactive)$pval[3],
+                    joint.inter.p.se = summary(joint.test.interactive)$pval[4],
+                    joint.inter.p2.se = summary(joint.test.interactive)$pval[5],
+                    joint.inter.p3.se = summary(joint.test.interactive)$pval[6]
+                    )
+  return(data.frame(out))
+  }
+
+
+
+
+#Step 4: Process your documentation
+#Now you need to create the documentation from your annotations earlier. You’ve already done the “hard” work in Step 3. Step 4 is as easy doing this:
+
+setwd("./cats")
+document()
+#This automatically adds in the .Rd files to the man directory, and adds a NAMESPACE file to the main directory. You can read up more about these, but in terms of steps you need to take, you really don’t have to do anything further.
+
+
+#Step 5: Install!
+#Now it is as simple as installing the package! You need to run this from the parent working directory that contains the cats folder.
+
+setwd("..")
+install("cats")
+#Now you have a real, live, functioning R package. For example, try typing ?cat_function. You should see the standard help page pop up!
+
+#Step 6: Make the package a GitHub repo
+# to putting your package onto GitHub is that you can use the devtools install_github() function to install your new package directly from the GitHub page.
+
+install_github('cats','github_username')
+
+```
+
+####*Simulate a meta-analytic dataset with dataMA()*
+
+*Basic Model*
+```{r}
+#create data
+basic.data = dataMA(k = 10, meanD = .3, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+
+#Simulate
+basic = rma(yi = d, sei = se, data = basic.data)
+#View
+summary(basic)
+funnel(basic)
+forest(basic)
+funnel(trimfill(basic))
+funnel(basic, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+
+#What is verbose printing?
+```
+
+*Null Model*
+```{r}
+null.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5)
+
+null = rma(yi = d, sei = se, data = null.data)
+
+summary(null)
+funnel(null)
+funnel(null, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0)
+forest(null)
+
+```
+
+*Bias Model*
+*QRP* 1 if QRP/p-hacks are available, 0 otherwise
+*sel* 1 if publication bias selection exists, 0 otherwise
+*propB* the proportion of the sample affected by bias
+*cbdv* the correlation between the multiple DVs
+*multDV* 1 if multiple DVs as a hack, 0 otherwise | collect several DVs and publish just the one of these that looks best for your results.
+*out* 1 if optional outlier removal as a hack, 0 otherwise | analyses with and without outlier exclusion
+*mod* 1 if optional moderator as a hack, 0 otherwise | analyses after running the interaction with some moderator
+*colLim* number of times to try collecting more data | collect some data, look at the p-value, then collect more data if p > .05, your long-run alpha rate goes up. repeats until p<.05 or has done step 3 *colLim* number of times
+*add* number to add to each group when collecting more data | adds some more data (*add* observations) and checks again
+```{r}
+
+# output = NULL
+# for (i in 1:200) {
+#   QRP.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
+#   QRPr = rma(yi = d, sei = se, data = QRP.data)
+#   output = c(output, QRPr$pval)
+# }
+# hist(output)
+
+QRP.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, QRP = 1)
+
+
+sel.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, sel = 1)
+selr = rma(yi = d, sei = se, data = sel.data)
+
+propB.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, propB = .6, sel =1)
+propr <- rma(yi = d, sei = se, data = propB.data)
+
+cbdv.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, cbdv = .3)
+cbdvr = rma(yi = d, sei = se, data = cbdv.data)
+
+multDV.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, multDV = 1)
+multDVr = rma(yi = d, sei = se, data = multDV.data)
+
+out.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, out = 1)
+outr = rma(yi = d, sei = se, data = out.data)
+
+mod.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, mod = 1)
+modr = rma(yi = d, sei = se, data = mod.data)
+
+colLim.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, colLim = 3)
+colLimr = rma(yi = d, sei = se, data = colLim.data)
+
+add.data = dataMA(k = 10, meanD = 0, sigma = .002, maxN = 50, minN = 20, meanN = 30, sdN = 5, add = 3)
+addr = rma(yi = d, sei = se, data = add.data)
+
+funnel(null, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "null")
+funnel(QRPr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "QRP: p-hacks")
+funnel(selr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "sel: publication bias")
+funnel(propr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "sel: publication bias 60%")
+funnel(cbdvr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "cbdv: correlation b/w multi. DVs")
+funnel(multDVr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "multDV: as a hack (publish just sig.)")
+funnel(outr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "out: outlier exlusion or not")
+funnel(modr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "mod: remove moderator?")
+funnel(colLimr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "colLim: collect more data for p>.05")
+funnel(addr, level=c(90, 95, 99),
+        shade = c("white", "grey75", "grey60"), refline=0, main = "add: add data to cells for p>.05")
+
+```
+
+
+
+*Simulate a moderator effect (meta-regression)*
+```{r}
+dat <- dataMA(k = 50,
+              QRP = 0,
+              sel =0,
+              sigma = 0,
+              min = 50, max = 500)
+dat.mod <- data.frame(dat, "mod" = runif(50))
+ma5 = rma(yi = d, sei = se, data = dat.mod,
+          mods = mod)
+summary(ma5)
+plot(ma5)
+
+ma6 = rma(yi = d, sei = se, data = dat.bias, mods = se)
+plot(ma6)
+funnel(ma4)
+```
+
+*modMA*
+```{r}
+
+
+```
